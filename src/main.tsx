@@ -3,6 +3,6 @@ import { gsap } from "gsap";
 import App from "./App.tsx";
 import "./index.css";
 
-gsap.config({ trialWarn: false });
+gsap.config({});
 
 createRoot(document.getElementById("root")!).render(<App />);
