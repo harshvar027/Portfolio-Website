@@ -12,23 +12,77 @@ import {
 } from "@react-three/rapier";
 
 const textureLoader = new THREE.TextureLoader();
-const imageUrls = [
-  "/images/react2.webp",
-  "/images/next2.webp",
-  "/images/node2.webp",
-  "/images/express.webp",
-  "/images/mongo.webp",
-  "/images/mysql.webp",
-  "/images/typescript.webp",
-  "/images/javascript.webp",
+
+type TechItem =
+  | { type: "image"; url: string }
+  | { type: "label"; name: string; color: string };
+
+const techItems: TechItem[] = [
+  { type: "image", url: "/images/react2.webp" },
+  { type: "image", url: "/images/next2.webp" },
+  { type: "image", url: "/images/node2.webp" },
+  { type: "image", url: "/images/express.webp" },
+  { type: "image", url: "/images/mongo.webp" },
+  { type: "image", url: "/images/mysql.webp" },
+  { type: "image", url: "/images/typescript.webp" },
+  { type: "image", url: "/images/javascript.webp" },
+  { type: "image", url: "/images/react.webp" },
+  { type: "image", url: "/images/node.webp" },
+  { type: "image", url: "/images/next.webp" },
+  { type: "label", name: "Python", color: "#3776AB" },
+  { type: "label", name: "Java", color: "#E76F00" },
+  { type: "label", name: "C++", color: "#00599C" },
+  { type: "label", name: "PHP", color: "#777BB4" },
+  { type: "label", name: "HTML", color: "#E34F26" },
+  { type: "label", name: "CSS", color: "#1572B6" },
+  { type: "label", name: "Git", color: "#F05032" },
+  { type: "label", name: "Three", color: "#0B0B0B" },
+  { type: "label", name: "GSAP", color: "#88CE02" },
+  { type: "label", name: "Blender", color: "#E87D0D" },
 ];
-const textures = imageUrls.map((url) => textureLoader.load(url));
 
-const sphereGeometry = new THREE.SphereGeometry(1, 28, 28);
+function createLabelTexture(label: string, bgColor: string) {
+  const size = 512;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
 
-const spheres = [...Array(30)].map(() => ({
+  ctx.fillStyle = bgColor;
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 2, size / 2 - 6, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = `bold ${label.length > 5 ? 64 : label.length > 3 ? 80 : 96}px sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, size / 2, size / 2);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+function createTechMaterial(texture: THREE.Texture) {
+  return new THREE.MeshPhysicalMaterial({
+    map: texture,
+    emissive: "#ffffff",
+    emissiveMap: texture,
+    emissiveIntensity: 0.3,
+    metalness: 0.5,
+    roughness: 1,
+    clearcoat: 0.1,
+  });
+}
+
+const SPHERE_COUNT = techItems.length * 3;
+
+const spheres = [...Array(SPHERE_COUNT)].map(() => ({
   scale: [0.7, 1, 0.8, 1, 1][Math.floor(Math.random() * 5)],
 }));
+
+const sphereGeometry = new THREE.SphereGeometry(1, 28, 28);
 
 type SphereProps = {
   vec?: THREE.Vector3;
@@ -129,11 +183,10 @@ const TechStack = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      const scrollY = window.scrollY || document.documentElement.scrollTop;
-      const threshold = document
-        .getElementById("work")!
-        .getBoundingClientRect().top;
-      setIsActive(scrollY > threshold);
+      const techstackEl = document.querySelector(".techstack");
+      if (!techstackEl) return;
+      const rect = techstackEl.getBoundingClientRect();
+      setIsActive(rect.top < window.innerHeight && rect.bottom > 0);
     };
     document.querySelectorAll(".header a").forEach((elem) => {
       const element = elem as HTMLAnchorElement;
@@ -147,32 +200,33 @@ const TechStack = () => {
       });
     });
     window.addEventListener("scroll", handleScroll);
+    handleScroll();
     return () => {
       window.removeEventListener("scroll", handleScroll);
     };
   }, []);
   const materials = useMemo(() => {
-    return textures.map(
-      (texture) =>
-        new THREE.MeshPhysicalMaterial({
-          map: texture,
-          emissive: "#ffffff",
-          emissiveMap: texture,
-          emissiveIntensity: 0.3,
-          metalness: 0.5,
-          roughness: 1,
-          clearcoat: 0.1,
-        })
-    );
+    return techItems.map((item) => {
+      const texture =
+        item.type === "image"
+          ? textureLoader.load(item.url)
+          : createLabelTexture(item.name, item.color);
+      return createTechMaterial(texture);
+    });
   }, []);
+
+  const sphereMaterials = useMemo(
+    () =>
+      spheres.map((_, i) => materials[i % materials.length]),
+    [materials]
+  );
 
   return (
     <div className="techstack">
-      <h2> My Techstack</h2>
-
       <Canvas
         shadows
-        gl={{ alpha: true, stencil: false, depth: false, antialias: false }}
+        frameloop={isActive ? "always" : "demand"}
+        gl={{ alpha: true, stencil: false, depth: true, antialias: false }}
         camera={{ position: [0, 0, 20], fov: 32.5, near: 1, far: 100 }}
         onCreated={(state) => (state.gl.toneMappingExposure = 1.5)}
         className="tech-canvas"
@@ -193,7 +247,7 @@ const TechStack = () => {
             <SphereGeo
               key={i}
               {...props}
-              material={materials[Math.floor(Math.random() * materials.length)]}
+              material={sphereMaterials[i]}
               isActive={isActive}
             />
           ))}
@@ -207,6 +261,7 @@ const TechStack = () => {
           <N8AO color="#0f002c" aoRadius={2} intensity={1.15} />
         </EffectComposer>
       </Canvas>
+      <h2> My Techstack</h2>
     </div>
   );
 };

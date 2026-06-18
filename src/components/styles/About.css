@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap");
+
 .about-section {
   display: flex;
   align-items: center;
@@ -9,42 +11,77 @@
   width: var(--cWidth);
   margin: auto;
 }
+
 .about-me {
   padding: 50px 0px;
   padding-bottom: 0;
   width: 500px;
   max-width: calc(100% - 15px);
 }
+
 .about-me h3 {
   font-size: 25px;
   text-transform: uppercase;
   letter-spacing: 7px;
   font-weight: 400;
   color: var(--accentColor);
+  margin: 0;
 }
 
-.about-me p {
-  font-size: 33px;
-  font-weight: 600;
-  line-height: 36px;
-  letter-spacing: 1px;
+.about-text {
+  font-family: "Instrument Serif", Georgia, "Times New Roman", serif;
+  font-size: 1.35rem;
+  font-weight: 400;
+  line-height: 1.75;
+  letter-spacing: 0.015em;
+  text-align: left;
+  color: #c9c5cf;
+  margin: 0;
+  margin-top: 1.75rem;
+  max-width: 38rem;
+  text-wrap: pretty;
+}
+
+.about-text-secondary {
+  margin-top: 1.25rem;
+  color: #a8a4ae;
+  font-size: 1.2rem;
+  line-height: 1.8;
+}
+
+.about-highlight {
+  color: #f4f0f8;
+  font-style: italic;
+  font-weight: 400;
 }
 
 @media only screen and (min-width: 600px) {
   .about-section {
     justify-content: center;
   }
+
+  .about-text {
+    font-size: 1.45rem;
+  }
 }
+
 @media only screen and (min-width: 768px) {
   .about-me {
-    width: 500px;
+    width: 520px;
     max-width: calc(100% - 70px);
     transform: translateY(0%);
   }
+
   .about-section {
     opacity: 1;
   }
+
+  .about-text {
+    font-size: 1.55rem;
+    line-height: 1.72;
+  }
 }
+
 @media only screen and (min-width: 1025px) {
   .about-section {
     width: var(--cWidth);
@@ -54,18 +91,35 @@
     padding: 0px;
     opacity: 1;
   }
+
   .about-me {
-    padding: 0px;
-    width: 50%;
+    padding: 0 4% 0 0;
+    width: 48%;
+    max-width: 36rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
   }
-  .about-me p {
-    font-size: 1.9vw;
-    line-height: 2.3vw;
+
+  .about-text {
+    font-size: clamp(1.35rem, 1.65vw, 1.85rem);
+    line-height: 1.7;
+    max-width: 100%;
+  }
+
+  .about-text-secondary {
+    font-size: clamp(1.15rem, 1.4vw, 1.5rem);
   }
 }
+
 @media only screen and (min-width: 1950px) {
-  .about-me p {
-    font-size: 2.5rem;
-    line-height: 2.7rem;
+  .about-text {
+    font-size: 1.95rem;
+    line-height: 1.75;
+  }
+
+  .about-text-secondary {
+    font-size: 1.6rem;
   }
 }

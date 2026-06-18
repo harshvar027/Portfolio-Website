@@ -19,15 +19,14 @@ const MainContainer = ({ children }: PropsWithChildren) => {
 
   useEffect(() => {
     const resizeHandler = () => {
-      setSplitText();
       setIsDesktopView(window.innerWidth > 1024);
     };
-    resizeHandler();
+    setSplitText();
     window.addEventListener("resize", resizeHandler);
     return () => {
       window.removeEventListener("resize", resizeHandler);
     };
-  }, [isDesktopView]);
+  }, []);
 
   return (
     <div className="container-main">
@@ -42,12 +41,12 @@ const MainContainer = ({ children }: PropsWithChildren) => {
             <About />
             <WhatIDo />
             <Career />
-            <Work />
             {isDesktopView && (
               <Suspense fallback={<div>Loading....</div>}>
                 <TechStack />
               </Suspense>
             )}
+            <Work />
             <Contact />
           </div>
         </div>

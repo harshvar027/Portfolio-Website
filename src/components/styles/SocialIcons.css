@@ -43,6 +43,13 @@
   will-change: left, top;
   transition: transform 0.3s ease-out;
 }
+.social-icons a .guns-lol-icon {
+  width: 1.1em;
+  height: 1.1em;
+  object-fit: contain;
+  display: block;
+  mix-blend-mode: screen;
+}
 .resume-button {
   position: absolute;
   z-index: 99;

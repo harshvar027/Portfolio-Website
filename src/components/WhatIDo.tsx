@@ -33,6 +33,10 @@ const WhatIDo = () => {
             I<span className="do-h2"> DO</span>
           </div>
         </h2>
+        <p className="what-intro">
+          I blend full-stack development with design thinking to build digital
+          products that are fast, intuitive, and visually striking.
+        </p>
       </div>
       <div className="what-box">
         <div className="what-box-in">
@@ -88,10 +92,12 @@ const WhatIDo = () => {
 
             <div className="what-content-in">
               <h3>DEVELOP</h3>
-              <h4>Description</h4>
+              <h4>Web Apps & Backend Systems</h4>
               <p>
-                Lorem ipsum dolor sit amet consectetur adipisicing elit. Quas
-                quia aliquid laboriosam ducimus sit molestiae.
+                I build responsive, production-ready applications—from polished
+                frontends to scalable APIs and databases. Clean code, smooth
+                performance, and thoughtful UX are at the heart of everything I
+                ship.
               </p>
               <h5>Skillset & tools</h5>
               <div className="what-content-flex">
@@ -129,10 +135,11 @@ const WhatIDo = () => {
             <div className="what-corner"></div>
             <div className="what-content-in">
               <h3>DESIGN</h3>
-              <h4>Description</h4>
+              <h4>UI, Motion & 3D Experiences</h4>
               <p>
-                Lorem ipsum dolor sit amet consectetur adipisicing elit. Quas
-                quia aliquid laboriosam ducimus sit molestiae
+                I craft interfaces and immersive visuals that tell a story—from
+                layout and typography to 3D modeling, rigging, and animation.
+                Every detail is shaped to feel intentional and memorable.
               </p>
               <h5>Skillset & tools</h5>
               <div className="what-content-flex">

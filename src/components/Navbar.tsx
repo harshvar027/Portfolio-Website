@@ -10,6 +10,8 @@ export let smoother: ScrollSmoother;
 
 const Navbar = () => {
   useEffect(() => {
+    if (!document.querySelector("#smooth-wrapper")) return;
+
     smoother = ScrollSmoother.create({
       wrapper: "#smooth-wrapper",
       content: "#smooth-content",
@@ -23,21 +25,37 @@ const Navbar = () => {
     smoother.scrollTop(0);
     smoother.paused(true);
 
-    let links = document.querySelectorAll(".header ul a");
+    const links = document.querySelectorAll(".header ul a");
+    const clickHandlers: Array<{ el: Element; handler: (e: Event) => void }> =
+      [];
+
     links.forEach((elem) => {
-      let element = elem as HTMLAnchorElement;
-      element.addEventListener("click", (e) => {
+      const handler = (e: Event) => {
         if (window.innerWidth > 1024) {
           e.preventDefault();
-          let elem = e.currentTarget as HTMLAnchorElement;
-          let section = elem.getAttribute("data-href");
-          smoother.scrollTo(section, true, "top top");
+          const anchor = e.currentTarget as HTMLAnchorElement;
+          const section = anchor.getAttribute("data-href");
+          if (section) {
+            smoother.scrollTo(section, true, "top top");
+          }
         }
-      });
+      };
+      elem.addEventListener("click", handler);
+      clickHandlers.push({ el: elem, handler });
     });
-    window.addEventListener("resize", () => {
+
+    const onResize = () => {
       ScrollSmoother.refresh(true);
-    });
+    };
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      clickHandlers.forEach(({ el, handler }) =>
+        el.removeEventListener("click", handler)
+      );
+      window.removeEventListener("resize", onResize);
+      smoother?.kill();
+    };
   }, []);
   return (
     <>
@@ -46,11 +64,11 @@ const Navbar = () => {
           Logo
         </a>
         <a
-          href="mailto:example@mail.com"
+          href="mailto:harshvar027@gmail.com"
           className="navbar-connect"
           data-cursor="disable"
         >
-          example@mail.com
+          harshvar027@gmail.com
         </a>
         <ul>
           <li>
