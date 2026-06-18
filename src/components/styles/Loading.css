@@ -18,7 +18,6 @@
   transform: translateY(-100%);
 }
 
-/* Faint background grid + drifting aura for depth */
 .loading-grid {
   position: absolute;
   inset: 0;
@@ -91,7 +90,7 @@
   font-weight: 500;
 }
 
-/* ---------- Cinematic domino line ---------- */
+/* ---------- Domino cascade ---------- */
 .loading-stage {
   position: relative;
   z-index: 2;
@@ -99,128 +98,96 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
 }
-
-.loading-domino-scene {
-  --g: 64px; /* spacing between dominoes */
-  --t: 10s; /* full loop / camera pan duration */
+.loading-dominos {
   position: relative;
-  width: 100%;
-  height: 280px;
-  perspective: 1100px;
-  perspective-origin: 50% 78%;
-  /* depth fog: fade the near and far ends of the line */
-  -webkit-mask-image: linear-gradient(
-    90deg,
-    transparent 0%,
-    #000 14%,
-    #000 86%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    90deg,
-    transparent 0%,
-    #000 14%,
-    #000 86%,
-    transparent 100%
-  );
+  display: flex;
+  align-items: flex-end;
+  gap: 22px;
+  padding-bottom: 4px;
 }
-
-.loading-domino-rail {
-  --step: calc(var(--t) / var(--n) * -1);
+.loading-floor {
   position: absolute;
-  left: 0;
-  bottom: 70px;
-  height: 130px;
-  width: calc(var(--n) * 2 * var(--g));
-  transform-style: preserve-3d;
-  animation: dolly var(--t) linear infinite;
-}
-
-@keyframes dolly {
-  from {
-    transform: rotateX(11deg) rotateY(-1deg) translateX(0);
-  }
-  to {
-    transform: rotateX(11deg) rotateY(-1deg) translateX(-50%);
-  }
-}
-
-.loading-domino-floor {
-  position: absolute;
-  left: 0;
+  left: -40px;
+  right: -40px;
   bottom: 0;
-  width: 100%;
   height: 1px;
-  background: rgba(234, 229, 236, 0.18);
-  box-shadow: 0 0 22px 1px rgba(194, 164, 255, 0.18);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(234, 229, 236, 0.22) 20%,
+    rgba(234, 229, 236, 0.22) 80%,
+    transparent
+  );
 }
 
-.loading-domino {
-  position: absolute;
-  bottom: 0;
-  left: calc(var(--i) * var(--g));
-  width: 26px;
-  height: 104px;
-  border-radius: 5px;
+.loading-window {
+  width: 64px;
+  height: 88px;
+  border-radius: 8px;
+  border: 1px solid rgba(234, 229, 236, 0.16);
+  background: linear-gradient(
+    160deg,
+    rgba(234, 229, 236, 0.09),
+    rgba(234, 229, 236, 0.02)
+  );
+  backdrop-filter: blur(2px);
+  padding: 7px;
+  box-sizing: border-box;
   transform-origin: bottom right;
-  background: linear-gradient(
-    155deg,
-    rgba(234, 229, 236, 0.95) 0%,
-    rgba(180, 175, 188, 0.78) 48%,
-    rgba(120, 116, 128, 0.7) 100%
-  );
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  box-shadow: 0 18px 26px -16px rgba(0, 0, 0, 0.85),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-  animation: topple var(--t) cubic-bezier(0.6, 0, 0.25, 1) infinite;
-  animation-delay: calc(var(--i) * var(--step));
+  box-shadow: 0 14px 24px -14px rgba(0, 0, 0, 0.7);
+  animation: dominoFall 4.4s cubic-bezier(0.66, 0, 0.34, 1) infinite;
 }
-
-/* engraved dot on each tile */
-.loading-domino::after {
-  content: "";
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  width: 7px;
-  height: 7px;
+.window-bar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.window-bar i {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  transform: translateX(-50%);
-  background: rgba(11, 8, 12, 0.35);
+  background: rgba(234, 229, 236, 0.4);
+}
+.window-bar i:first-child {
+  background: var(--accentColor);
+}
+.window-body {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.window-body b {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(234, 229, 236, 0.18);
+}
+.window-body b:nth-child(1) {
+  width: 100%;
+}
+.window-body b:nth-child(2) {
+  width: 70%;
+}
+.window-body b:nth-child(3) {
+  width: 85%;
+  background: rgba(194, 164, 255, 0.4);
 }
 
-.loading-domino.is-accent {
-  background: linear-gradient(
-    155deg,
-    var(--accentColor) 0%,
-    #9d77ff 55%,
-    #6d4fcf 100%
-  );
-  box-shadow: 0 18px 30px -14px rgba(157, 119, 255, 0.7),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.18);
-}
-.loading-domino.is-accent::after {
-  background: rgba(255, 255, 255, 0.45);
-}
-
-@keyframes topple {
+@keyframes dominoFall {
   0% {
-    transform: rotateZ(0deg);
+    transform: rotate(0deg);
   }
-  6% {
-    transform: rotateZ(87deg);
+  14% {
+    transform: rotate(74deg);
   }
-  80% {
-    transform: rotateZ(87deg);
+  46% {
+    transform: rotate(74deg);
   }
-  /* stands back up far out in the faded margin, then waits for next pass */
-  88% {
-    transform: rotateZ(0deg);
+  60% {
+    transform: rotate(0deg);
   }
   100% {
-    transform: rotateZ(0deg);
+    transform: rotate(0deg);
   }
 }
 
@@ -278,7 +245,6 @@
   padding-top: 0.25em;
 }
 
-/* Falling digit reels */
 .loading-reel {
   position: relative;
   display: inline-block;
@@ -305,7 +271,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Vertical scrolling ticker */
 .loading-ticker {
   position: relative;
   height: 2.1em;
@@ -360,7 +325,6 @@
   }
 }
 
-/* ---------- Progress bar ---------- */
 .loading-bar {
   position: relative;
   z-index: 4;
@@ -411,17 +375,12 @@
   }
 }
 @media only screen and (max-width: 700px) {
-  .loading-domino-scene {
-    --g: 46px;
-    height: 200px;
+  .loading-window {
+    width: 48px;
+    height: 66px;
   }
-  .loading-domino {
-    width: 19px;
-    height: 76px;
-  }
-  .loading-domino-rail {
-    height: 96px;
-    bottom: 50px;
+  .loading-dominos {
+    gap: 14px;
   }
   .loading-ticker {
     font-size: 13px;

@@ -11,13 +11,7 @@ const PHRASES = [
   "3D / MOTION",
 ];
 
-// Descending reel so each increment drops in from the top — a "falling" counter.
 const REEL = [9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
-
-// The line is one unique set duplicated end-to-end so the tracking camera can
-// pan infinitely with a seamless wrap.
-const DOMINO_UNIQUE = 18;
-const DOMINO_COUNT = DOMINO_UNIQUE * 2;
 
 const FallReel = ({ value, active }: { value: number; active: boolean }) => (
   <span className={`loading-reel ${active ? "" : "loading-reel-idle"}`}>
@@ -47,8 +41,6 @@ const Loading = ({ percent }: { percent: number }) => {
     targetRef.current = Math.min(100, Math.max(0, percent));
   }, [percent]);
 
-  // Smoothly interpolate toward the incoming target so the counter rises
-  // continuously even when the source progress jumps.
   useEffect(() => {
     const tick = () => {
       setDisplay((prev) => {
@@ -104,27 +96,27 @@ const Loading = ({ percent }: { percent: number }) => {
         <span className="loading-tag">Portfolio · 2026</span>
       </div>
 
-      {/* Cinematic tracking shot down a long line of toppling dominoes */}
       <div className="loading-stage">
-        <div className="loading-domino-scene">
-          <div
-            className="loading-domino-rail"
-            style={{ "--n": DOMINO_UNIQUE } as React.CSSProperties}
-          >
-            <span className="loading-domino-floor"></span>
-            {[...Array(DOMINO_COUNT)].map((_, i) => (
-              <span
-                className={`loading-domino ${i % 5 === 0 ? "is-accent" : ""}`}
-                key={i}
-                style={
-                  {
-                    "--i": i,
-                    zIndex: DOMINO_COUNT - i,
-                  } as React.CSSProperties
-                }
-              ></span>
-            ))}
-          </div>
+        <div className="loading-dominos">
+          {[...Array(5)].map((_, i) => (
+            <div
+              className="loading-window"
+              style={{ animationDelay: `${i * 0.16}s` }}
+              key={i}
+            >
+              <span className="window-bar">
+                <i></i>
+                <i></i>
+                <i></i>
+              </span>
+              <span className="window-body">
+                <b></b>
+                <b></b>
+                <b></b>
+              </span>
+            </div>
+          ))}
+          <span className="loading-floor"></span>
         </div>
       </div>
 
@@ -139,7 +131,6 @@ const Loading = ({ percent }: { percent: number }) => {
           </div>
         </div>
 
-        {/* Vertical ticker cycling through the disciplines */}
         <div className="loading-ticker">
           <div className="loading-ticker-track">
             {[...PHRASES, ...PHRASES].map((p, i) => (
