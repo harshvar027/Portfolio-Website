@@ -26,30 +26,28 @@ export default function setSplitText() {
       para.split?.revert();
     }
 
-    para.split = new SplitText(para, {
+    const paraSplit = new SplitText(para, {
       type: "lines,words",
       linesClass: "split-line",
     });
+    para.split = paraSplit;
 
-    // Added ?. to safely access words if split exists
-    if (para.split?.words) {
-      para.anim = gsap.fromTo(
-        para.split.words,
-        { autoAlpha: 0, y: 80 },
-        {
-          autoAlpha: 1,
-          scrollTrigger: {
-            trigger: para.parentElement?.parentElement,
-            toggleActions: ToggleAction,
-            start: TriggerStart,
-          },
-          duration: 1,
-          ease: "power3.out",
-          y: 0,
-          stagger: 0.02,
-        }
-      );
-    }
+    para.anim = gsap.fromTo(
+      paraSplit.words,
+      { autoAlpha: 0, y: 80 },
+      {
+        autoAlpha: 1,
+        scrollTrigger: {
+          trigger: para.parentElement?.parentElement,
+          toggleActions: ToggleAction,
+          start: TriggerStart,
+        },
+        duration: 1,
+        ease: "power3.out",
+        y: 0,
+        stagger: 0.02,
+      }
+    );
   });
 
   titles.forEach((title: ParaElement) => {
@@ -57,31 +55,28 @@ export default function setSplitText() {
       title.anim.progress(1).kill();
       title.split?.revert();
     }
-    
-    title.split = new SplitText(title, {
+
+    const titleSplit = new SplitText(title, {
       type: "chars,lines",
       linesClass: "split-line",
     });
-
-    // Added ?. to safely access chars if split exists
-    if (title.split?.chars) {
-      title.anim = gsap.fromTo(
-        title.split.chars,
-        { autoAlpha: 0, y: 80, rotate: 10 },
-        {
-          autoAlpha: 1,
-          scrollTrigger: {
-            trigger: title.parentElement?.parentElement,
-            toggleActions: ToggleAction,
-            start: TriggerStart,
-          },
-          duration: 0.8,
-          ease: "power2.inOut",
-          y: 0,
-          rotate: 0,
-          stagger: 0.03,
-        }
-      );
-    }
+    title.split = titleSplit;
+    title.anim = gsap.fromTo(
+      titleSplit.chars,
+      { autoAlpha: 0, y: 80, rotate: 10 },
+      {
+        autoAlpha: 1,
+        scrollTrigger: {
+          trigger: title.parentElement?.parentElement,
+          toggleActions: ToggleAction,
+          start: TriggerStart,
+        },
+        duration: 0.8,
+        ease: "power2.inOut",
+        y: 0,
+        rotate: 0,
+        stagger: 0.03,
+      }
+    );
   });
 }
