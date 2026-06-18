@@ -1,0 +1,122 @@
+.comments-section {
+  margin: auto;
+  margin-top: 60px;
+  padding-bottom: 120px;
+}
+.comments-section h3 {
+  font-size: 60px;
+  font-weight: 400;
+  text-transform: uppercase;
+  margin: 0;
+}
+.comments-subtitle {
+  font-size: 20px;
+  opacity: 0.6;
+  margin-top: 10px;
+  margin-bottom: 40px;
+  max-width: 600px;
+}
+.comments-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 700px;
+}
+.comments-input,
+.comments-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 16px 20px;
+  color: #eae5ec;
+  font-family: "Geist", sans-serif;
+  font-size: 18px;
+  outline: none;
+  transition: border-color 0.3s, background-color 0.3s;
+  resize: vertical;
+}
+.comments-input::placeholder,
+.comments-textarea::placeholder {
+  color: rgba(234, 229, 236, 0.4);
+}
+.comments-input:focus,
+.comments-textarea:focus {
+  border-color: var(--accentColor);
+  background-color: rgba(194, 164, 255, 0.06);
+}
+.comments-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.comments-feedback {
+  font-size: 16px;
+}
+.comments-feedback-success {
+  color: #7bdc9b;
+}
+.comments-feedback-error {
+  color: #ff8b8b;
+}
+.comments-feedback-sending {
+  opacity: 0.6;
+}
+.comments-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  background-color: var(--accentColor);
+  color: #0b080c;
+  border: none;
+  border-radius: 40px;
+  padding: 14px 28px;
+  font-family: "Geist", sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.3s, opacity 0.3s;
+}
+.comments-submit:hover {
+  transform: translateY(-2px);
+}
+.comments-submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+}
+@media only screen and (max-width: 1600px) {
+  .comments-section h3 {
+    font-size: 50px;
+  }
+}
+@media only screen and (max-width: 1300px) {
+  .comments-section h3 {
+    font-size: 40px;
+  }
+  .comments-subtitle {
+    font-size: 18px;
+  }
+  .comments-input,
+  .comments-textarea {
+    font-size: 16px;
+  }
+}
+@media only screen and (max-width: 900px) {
+  .comments-section {
+    margin-top: 30px;
+    padding-bottom: 60px;
+  }
+  .comments-container {
+    width: var(--cWidth);
+    margin: auto;
+  }
+  .comments-submit {
+    width: 100%;
+    justify-content: center;
+  }
+}

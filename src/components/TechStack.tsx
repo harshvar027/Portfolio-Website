@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { useRef, useMemo, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Environment } from "@react-three/drei";
 import { EffectComposer, N8AO } from "@react-three/postprocessing";
@@ -10,6 +11,9 @@ import {
   CylinderCollider,
   RapierRigidBody,
 } from "@react-three/rapier";
+import { anchorHostBaseStyle, useAnchorSync } from "../hooks/useAnchorRect";
+
+const TECHSTACK_ANCHOR_ID = "techstack-anchor";
 
 const textureLoader = new THREE.TextureLoader();
 
@@ -179,32 +183,15 @@ function Pointer({ vec = new THREE.Vector3(), isActive }: PointerProps) {
 }
 
 const TechStack = () => {
-  const [isActive, setIsActive] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const hostRef = useRef<HTMLDivElement>(null);
+  const anchor = useAnchorSync(TECHSTACK_ANCHOR_ID, hostRef);
+  const isActive = anchor.visible;
 
   useEffect(() => {
-    const handleScroll = () => {
-      const techstackEl = document.querySelector(".techstack");
-      if (!techstackEl) return;
-      const rect = techstackEl.getBoundingClientRect();
-      setIsActive(rect.top < window.innerHeight && rect.bottom > 0);
-    };
-    document.querySelectorAll(".header a").forEach((elem) => {
-      const element = elem as HTMLAnchorElement;
-      element.addEventListener("click", () => {
-        const interval = setInterval(() => {
-          handleScroll();
-        }, 10);
-        setTimeout(() => {
-          clearInterval(interval);
-        }, 1000);
-      });
-    });
-    window.addEventListener("scroll", handleScroll);
-    handleScroll();
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
+    setMounted(true);
   }, []);
+
   const materials = useMemo(() => {
     return techItems.map((item) => {
       const texture =
@@ -221,8 +208,14 @@ const TechStack = () => {
     [materials]
   );
 
-  return (
-    <div className="techstack">
+  if (!mounted) return null;
+
+  return createPortal(
+    <div
+      ref={hostRef}
+      className="techstack-portal"
+      style={{ ...anchorHostBaseStyle, pointerEvents: "auto" }}
+    >
       <Canvas
         shadows
         frameloop={isActive ? "always" : "demand"}
@@ -261,9 +254,15 @@ const TechStack = () => {
           <N8AO color="#0f002c" aoRadius={2} intensity={1.15} />
         </EffectComposer>
       </Canvas>
-      <h2> My Techstack</h2>
-    </div>
+      <h2 className="techstack-title">My Techstack</h2>
+    </div>,
+    document.body
   );
 };
+
+/** Scroll spacer inside smooth-content — WebGL renders via portal on body. */
+export function TechStackSpacer() {
+  return <div id={TECHSTACK_ANCHOR_ID} className="techstack" />;
+}
 
 export default TechStack;

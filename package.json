@@ -20,6 +20,7 @@
     "@vercel/analytics": "^1.4.1",
     "gsap": "^3.12.7",
     "gsap-trial": "^3.12.7",
+    "matter-js": "^0.20.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-fast-marquee": "^1.6.5",
@@ -29,6 +30,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
+    "@types/matter-js": "^0.20.2",
+    "@types/node": "^25.9.3",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",

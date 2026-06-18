@@ -1,89 +1,133 @@
 import "./styles/Work.css";
-import WorkImage from "./WorkImage";
+import "./showcases/showcases.css";
+import { Carousel3D, Structure3D, NeuralAI, EcommerceUI } from "./showcases";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 
 gsap.registerPlugin(useGSAP);
 
-const projects = [
+type Showcase = "carousel" | "structure" | "ai" | "ecommerce";
+
+const projects: {
+  title: string;
+  category: string;
+  tools: string;
+  showcase: Showcase;
+}[] = [
   {
-    title: "DevPortfolio",
-    category: "Personal Website",
-    tools: "React, TypeScript, Three.js, GSAP",
-    alt: "DevPortfolio — interactive personal portfolio with 3D character",
+    title: "Aurora",
+    category: "Immersive Carousel UI",
+    tools: "React, CSS 3D Transforms, GSAP, Motion Design",
+    showcase: "carousel",
   },
   {
-    title: "TaskFlow",
-    category: "Productivity App",
-    tools: "Next.js, Node.js, MongoDB, REST APIs",
-    alt: "TaskFlow — full-stack task management application",
+    title: "Helios",
+    category: "Generative 3D Engine",
+    tools: "Three.js, GLSL Shaders, WebGL, Procedural Geometry",
+    showcase: "structure",
   },
   {
-    title: "WeatherScope",
-    category: "Weather Dashboard",
-    tools: "JavaScript, OpenWeather API, Chart.js",
-    alt: "WeatherScope — real-time weather data visualization",
+    title: "Synapse",
+    category: "AI Platform",
+    tools: "LLMs, Computer Vision, Canvas, Real-time Inference",
+    showcase: "ai",
   },
   {
-    title: "ShopHub",
-    category: "E-Commerce Platform",
-    tools: "React, Express.js, MySQL, Stripe",
-    alt: "ShopHub — online store with cart and checkout flow",
-  },
-  {
-    title: "LearnHub",
-    category: "Ed-Tech Platform",
-    tools: "MERN Stack, JWT Auth, Video Streaming",
-    alt: "LearnHub — course platform with user progress tracking",
-  },
-  {
-    title: "PixelForge",
-    category: "3D Web Experience",
-    tools: "Three.js, Blender, React Three Fiber",
-    alt: "PixelForge — immersive 3D scene built for the browser",
+    title: "Lumina",
+    category: "E-Commerce Experience",
+    tools: "React, Stripe, Animated 3D Backgrounds, UX Design",
+    showcase: "ecommerce",
   },
 ];
 
+const renderShowcase = (type: Showcase) => {
+  switch (type) {
+    case "carousel":
+      return <Carousel3D />;
+    case "structure":
+      return <Structure3D />;
+    case "ai":
+      return <NeuralAI />;
+    case "ecommerce":
+      return <EcommerceUI />;
+  }
+};
+
 const Work = () => {
   useGSAP(() => {
-  let translateX: number = 0;
-
-  function setTranslateX() {
+  // Recomputed on every ScrollTrigger refresh so measurements stay correct
+  // even when fonts / the smooth-scroller / the 3D showcases settle late.
+  function getTranslateX() {
     const box = document.getElementsByClassName("work-box");
-    if (!box.length || !document.querySelector(".work-container")) return;
+    if (!box.length || !document.querySelector(".work-container")) return 0;
     const rectLeft = document
       .querySelector(".work-container")!
       .getBoundingClientRect().left;
     const rect = box[0].getBoundingClientRect();
     const parentWidth = box[0].parentElement!.getBoundingClientRect().width;
-    let padding: number =
-      parseInt(window.getComputedStyle(box[0]).padding) / 2;
-    translateX = rect.width * box.length - (rectLeft + parentWidth) + padding;
+    const padding = parseInt(window.getComputedStyle(box[0]).padding) / 2;
+    return rect.width * box.length - (rectLeft + parentWidth) + padding;
   }
 
-  setTranslateX();
-  if (translateX <= 0) return;
+  let timeline: gsap.core.Timeline | null = null;
 
-  let timeline = gsap.timeline({
-    scrollTrigger: {
-      trigger: ".work-section",
-      start: "top top",
-      end: `+=${translateX}`, // Use actual scroll width
-      scrub: true,
-      pin: true,
-      id: "work",
-    },
-  });
+  // Build the pin/horizontal-scroll trigger. This MUST run *after*
+  // ScrollSmoother has been created, otherwise the trigger binds to the wrong
+  // scroller and the section never scrolls. useGSAP runs as a layout effect
+  // (before Navbar's ScrollSmoother.create in a passive effect), so we wait for
+  // the smoother to be live — signalled by `main.main-active` — before building.
+  const build = () => {
+    if (timeline) return;
+    if (getTranslateX() <= 0) return;
 
-  timeline.to(".work-flex", {
-    x: -translateX,
-    ease: "none",
-  });
+    timeline = gsap.timeline({
+      scrollTrigger: {
+        trigger: ".work-section",
+        start: "top top",
+        end: () => `+=${getTranslateX()}`,
+        scrub: true,
+        pin: true,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+        id: "work",
+      },
+    });
+
+    timeline.to(".work-flex", {
+      x: () => -getTranslateX(),
+      ease: "none",
+    });
+
+    ScrollTrigger.refresh();
+  };
+
+  let rafId = 0;
+  const waitForSmoother = () => {
+    if (
+      document.querySelector("main.main-active") &&
+      document.getElementsByClassName("work-box").length
+    ) {
+      build();
+      return;
+    }
+    rafId = requestAnimationFrame(waitForSmoother);
+  };
+  waitForSmoother();
+
+  // Re-measure once everything (fonts + heavy canvas/WebGL showcases) has
+  // settled, so the section pins centred before the horizontal scroll begins.
+  const refresh = () => ScrollTrigger.refresh();
+  window.addEventListener("load", refresh);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(refresh);
+  }
 
   // Clean up (optional, good practice)
   return () => {
-    timeline.kill();
+    cancelAnimationFrame(rafId);
+    window.removeEventListener("load", refresh);
+    timeline?.kill();
     ScrollTrigger.getById("work")?.kill();
   };
 }, []);
@@ -94,8 +138,9 @@ const Work = () => {
           My <span>Work</span>
         </h2>
         <p className="work-intro">
-          A selection of projects where I combined development, design, and
-          problem-solving to build real-world digital experiences.
+          Interactive, design-led builds — from immersive 3D experiences and
+          AI-powered platforms to polished e-commerce. Hover any preview to
+          play with it.
         </p>
         <div className="work-flex">
           {projects.map((project, index) => (
@@ -112,7 +157,7 @@ const Work = () => {
                 <h4>Tools & Features</h4>
                 <p>{project.tools}</p>
               </div>
-              <WorkImage image="/images/placeholder.webp" alt={project.alt} />
+              <div className="work-showcase">{renderShowcase(project.showcase)}</div>
             </div>
           ))}
         </div>

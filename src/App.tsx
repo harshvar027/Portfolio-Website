@@ -1,23 +1,16 @@
-import { lazy, Suspense } from "react";
+import MainContainer from "./components/MainContainer";
+import CharacterModel from "./components/Character";
 import "./App.css";
-
-const CharacterModel = lazy(() => import("./components/Character"));
-const MainContainer = lazy(() => import("./components/MainContainer"));
+import "./components/styles/enhance.css";
 import { LoadingProvider } from "./context/LoadingProvider";
 
 const App = () => {
   return (
-    <>
-      <LoadingProvider>
-        <Suspense>
-          <MainContainer>
-            <Suspense>
-              <CharacterModel />
-            </Suspense>
-          </MainContainer>
-        </Suspense>
-      </LoadingProvider>
-    </>
+    <LoadingProvider>
+      <MainContainer>
+        <CharacterModel />
+      </MainContainer>
+    </LoadingProvider>
   );
 };
 

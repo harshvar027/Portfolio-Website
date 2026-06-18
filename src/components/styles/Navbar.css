@@ -30,12 +30,14 @@
   font-weight: 600;
   cursor: pointer;
 }
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
 .navbar-connect {
-  position: absolute;
+  position: relative;
   display: none;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
   font-size: 15px;
   letter-spacing: 1px;
   font-weight: 500;
@@ -44,6 +46,15 @@
   font-weight: 700;
   font-size: 14px;
   letter-spacing: 0.2px;
+  display: flex;
+  align-items: center;
+}
+.navbar-logo {
+  height: 38px;
+  width: 38px;
+  object-fit: cover;
+  object-position: center 22%;
+  display: block;
 }
 @media only screen and (min-width: 500px) {
   .header {
@@ -57,8 +68,9 @@
   .header ul li {
     color: #eae5ec;
   }
-  .navbar-title {
-    font-size: 16px;
+  .navbar-logo {
+    height: 42px;
+    width: 42px;
   }
 }
 @media only screen and (min-width: 900px) {
@@ -77,7 +89,8 @@
   .navbar-connect {
     font-size: 16px;
   }
-  .navbar-title {
-    font-size: 18px;
+  .navbar-logo {
+    height: 46px;
+    width: 46px;
   }
 }

@@ -16,8 +16,10 @@ export default function handleResize(
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
   const workTrigger = ScrollTrigger.getById("work");
+  const preservedIds = new Set(["work", "particle-morph"]);
   ScrollTrigger.getAll().forEach((trigger) => {
-    if (trigger != workTrigger) {
+    const id = trigger.vars.id as string | undefined;
+    if (trigger !== workTrigger && !preservedIds.has(id ?? "")) {
       trigger.kill();
     }
   });

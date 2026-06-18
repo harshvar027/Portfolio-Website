@@ -7,6 +7,10 @@ const Landing = ({ children }: PropsWithChildren) => {
       <div className="landing-section" id="landingDiv">
         <div className="landing-container">
           <div className="landing-intro">
+            <div className="landing-badge">
+              <span className="dot" />
+              Available for work
+            </div>
             <h2>Hello! I'm</h2>
             <h1>
               HARSHVARDHAN
@@ -24,6 +28,10 @@ const Landing = ({ children }: PropsWithChildren) => {
               <div className="landing-h2-info">Developer</div>
               <div className="landing-h2-info-1">Designer</div>
             </h2>
+          </div>
+          <div className="scroll-cue" aria-hidden="true">
+            <span className="mouse" />
+            Scroll
           </div>
         </div>
         {children}

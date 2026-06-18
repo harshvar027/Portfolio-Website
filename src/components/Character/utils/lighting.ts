@@ -47,12 +47,15 @@ const setLighting = (scene: THREE.Scene) => {
       duration: duration,
       ease: ease,
     });
-    gsap.to(".character-rim", {
-      y: "55%",
-      opacity: 1,
-      delay: 0.2,
-      duration: 2,
-    });
+    const charRim = document.querySelector(".character-rim");
+    if (charRim) {
+      gsap.to(charRim, {
+        y: "55%",
+        opacity: 1,
+        delay: 0.2,
+        duration: 2,
+      });
+    }
   }
 
   return { setPointLight, turnOnLights };

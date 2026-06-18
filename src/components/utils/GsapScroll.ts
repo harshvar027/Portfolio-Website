@@ -26,7 +26,10 @@ export function setCharTimeline(
 
   killCharTriggers();
 
-  gsap.set(".character-model", { xPercent: -50 });
+  const charModel = document.querySelector(".character-model");
+  if (!charModel) return;
+
+  gsap.set(charModel, { xPercent: -50 });
 
   let intensity: number = 0;
   setInterval(() => {
@@ -238,7 +241,10 @@ export function initScrollTimelines(
   character: THREE.Object3D,
   camera: THREE.PerspectiveCamera
 ) {
-  gsap.set(".character-model", { xPercent: -50 });
+  const charModel = document.querySelector(".character-model");
+  if (charModel) {
+    gsap.set(charModel, { xPercent: -50 });
+  }
 
   const tryInit = () => {
     if (!hasPageSections()) {

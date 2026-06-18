@@ -15,29 +15,33 @@ import { setProgress } from "../Loading";
 
 const Scene = () => {
   const canvasDiv = useRef<HTMLDivElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const hoverDivRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef(new THREE.Scene());
   const { setLoading } = useLoading();
 
   const [character, setChar] = useState<THREE.Object3D | null>(null);
   useEffect(() => {
-    if (canvasDiv.current) {
-      let rect = canvasDiv.current.getBoundingClientRect();
-      let container = { width: rect.width, height: rect.height };
-      const aspect = container.width / container.height;
-      const scene = sceneRef.current;
+    const container = canvasDiv.current;
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return;
 
-      const renderer = new THREE.WebGLRenderer({
-        alpha: true,
-        antialias: true,
-      });
-      renderer.setSize(container.width, container.height);
+    let rect = container.getBoundingClientRect();
+    let containerSize = { width: rect.width, height: rect.height };
+    const aspect = containerSize.width / containerSize.height;
+    const scene = sceneRef.current;
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      alpha: true,
+      antialias: true,
+    });
+    renderer.setSize(containerSize.width, containerSize.height);
       renderer.setPixelRatio(window.devicePixelRatio);
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1;
-      canvasDiv.current.appendChild(renderer.domElement);
+    renderer.toneMappingExposure = 1;
 
-      const camera = new THREE.PerspectiveCamera(14.5, aspect, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(14.5, aspect, 0.1, 1000);
       camera.position.z = 10;
       camera.position.set(0, 13.1, 24.7);
       camera.zoom = 1.1;
@@ -128,27 +132,24 @@ const Scene = () => {
       animate();
       return () => {
         clearTimeout(debounce);
-        scene.clear();
-        renderer.dispose();
-        window.removeEventListener("resize", () =>
-          handleResize(renderer, camera, canvasDiv, character!)
-        );
-        if (canvasDiv.current) {
-          canvasDiv.current.removeChild(renderer.domElement);
-        }
-        if (landingDiv) {
-          document.removeEventListener("mousemove", onMouseMove);
-          landingDiv.removeEventListener("touchstart", onTouchStart);
-          landingDiv.removeEventListener("touchend", onTouchEnd);
-        }
-      };
-    }
+      scene.clear();
+      renderer.dispose();
+      window.removeEventListener("resize", () =>
+        handleResize(renderer, camera, canvasDiv, character!)
+      );
+      if (landingDiv) {
+        document.removeEventListener("mousemove", onMouseMove);
+        landingDiv.removeEventListener("touchstart", onTouchStart);
+        landingDiv.removeEventListener("touchend", onTouchEnd);
+      }
+    };
   }, []);
 
   return (
     <>
       <div className="character-container">
         <div className="character-model" ref={canvasDiv}>
+          <canvas ref={canvasRef} />
           <div className="character-rim"></div>
           <div className="character-hover" ref={hoverDivRef}></div>
         </div>

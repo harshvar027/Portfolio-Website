@@ -207,28 +207,46 @@
   font-size: 32px;
   line-height: 40px;
   position: relative;
-  display: flex;
-  flex-wrap: nowrap;
+  display: block;
   text-transform: uppercase;
   letter-spacing: 2px;
+  min-height: 1.15em;
+  overflow: hidden;
+}
+.landing-h2-info,
+.landing-h2-info-1,
+.landing-h2-1,
+.landing-h2-2 {
+  display: block;
+  white-space: nowrap;
+  line-height: inherit;
 }
 .landing-h2-info-1 {
   position: absolute;
   top: 0;
+  left: 0;
+  pointer-events: none;
+  visibility: hidden;
 }
 h2.landing-info-h2 {
   color: #c481ff;
   font-size: 42px;
-  width: 120%;
+  width: auto;
+  min-width: max-content;
   margin: 0;
   font-family: "Geist", sans-serif;
   font-weight: 600;
   position: relative;
   margin-left: -5px;
+  min-height: 1.15em;
+  overflow: hidden;
 }
 .landing-h2-2 {
   position: absolute;
   top: 0;
+  left: 0;
+  pointer-events: none;
+  visibility: hidden;
 }
 .landing-info-h2::after {
   content: "";

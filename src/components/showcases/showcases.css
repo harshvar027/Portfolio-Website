@@ -1,0 +1,446 @@
+/* ============================================================
+   Shared work-showcase canvas
+   ============================================================ */
+.sc {
+  position: relative;
+  width: 100%;
+  height: 340px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #0c0a12;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.8),
+    inset 0 0 60px -30px rgba(255, 255, 255, 0.15);
+}
+
+@media only screen and (max-height: 900px) {
+  .sc {
+    height: 260px;
+  }
+}
+@media only screen and (max-height: 650px) {
+  .sc {
+    height: 210px;
+  }
+}
+
+/* ============================================================
+   1. 3D MERRY-GO-ROUND CAROUSEL
+   ============================================================ */
+.sc-carousel {
+  background: radial-gradient(
+    circle at 50% 35%,
+    #241546 0%,
+    #0c0a12 70%
+  );
+  perspective: 1100px;
+}
+.sc-carousel-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+  transform: rotateX(-8deg);
+}
+.sc-carousel-ring {
+  position: relative;
+  width: 150px;
+  height: 190px;
+  transform-style: preserve-3d;
+  animation: sc-spin 22s linear infinite;
+}
+.sc-carousel:hover .sc-carousel-ring {
+  animation-duration: 9s;
+}
+@keyframes sc-spin {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(360deg);
+  }
+}
+.sc-carousel-card {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 16px;
+  box-sizing: border-box;
+  color: #fff;
+  box-shadow: 0 10px 30px -8px rgba(0, 0, 0, 0.6);
+  backface-visibility: hidden;
+  overflow: hidden;
+}
+.sc-carousel-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.35),
+    transparent 45%
+  );
+  mix-blend-mode: overlay;
+}
+.sc-carousel-sub {
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.sc-carousel-label {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.sc-carousel-dot {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 14px 3px rgba(255, 255, 255, 0.7);
+}
+.sc-carousel-floor {
+  position: absolute;
+  bottom: 26px;
+  left: 50%;
+  width: 320px;
+  height: 90px;
+  transform: translateX(-50%) rotateX(78deg);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(150, 110, 255, 0.4),
+    transparent 70%
+  );
+  filter: blur(8px);
+}
+
+/* ============================================================
+   2. INTERACTIVE 3D STRUCTURE
+   ============================================================ */
+.sc-structure {
+  background: radial-gradient(circle at 50% 50%, #1a0b2e 0%, #06040a 75%);
+  cursor: grab;
+}
+.sc-structure::after {
+  content: "drag · vibe";
+  position: absolute;
+  bottom: 14px;
+  left: 16px;
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+}
+
+/* ============================================================
+   3. AI NEURAL NETWORK
+   ============================================================ */
+.sc-ai {
+  background: radial-gradient(circle at 30% 20%, #0c1f3a 0%, #050810 70%);
+}
+.sc-ai-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.sc-ai-ui {
+  position: absolute;
+  inset: 0;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.sc-ai-badge {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #cfe9ff;
+  background: rgba(10, 25, 45, 0.55);
+  border: 1px solid rgba(120, 200, 255, 0.25);
+  padding: 6px 12px;
+  border-radius: 30px;
+  backdrop-filter: blur(6px);
+}
+.sc-ai-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #38f9d7;
+  box-shadow: 0 0 10px 2px #38f9d7;
+  animation: sc-blink 1.4s ease-in-out infinite;
+}
+@keyframes sc-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.sc-ai-prompt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(8, 16, 30, 0.6);
+  border: 1px solid rgba(120, 160, 255, 0.25);
+  border-radius: 14px;
+  padding: 12px 14px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px -12px rgba(60, 120, 255, 0.6);
+}
+.sc-ai-spark {
+  color: #7bdcff;
+  font-size: 16px;
+}
+.sc-ai-text {
+  font-size: 14px;
+  color: #eaf4ff;
+  font-weight: 300;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.sc-ai-caret {
+  display: inline-block;
+  width: 2px;
+  height: 15px;
+  margin-left: 2px;
+  vertical-align: middle;
+  background: #7bdcff;
+  animation: sc-caret 0.9s steps(1) infinite;
+}
+@keyframes sc-caret {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.sc-ai-chips {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  display: flex;
+  gap: 6px;
+}
+.sc-ai-chips span {
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #bfe0ff;
+  background: rgba(40, 90, 160, 0.3);
+  border: 1px solid rgba(120, 180, 255, 0.25);
+  padding: 4px 9px;
+  border-radius: 20px;
+}
+
+/* ============================================================
+   4. E-COMMERCE UI + 3D MOVING BACKGROUND
+   ============================================================ */
+.sc-shop {
+  background: #0a0612;
+}
+.sc-shop-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.sc-shop-grid {
+  position: absolute;
+  left: 50%;
+  bottom: -40%;
+  width: 220%;
+  height: 200%;
+  transform: translateX(-50%) rotateX(72deg);
+  background-image: linear-gradient(
+      rgba(170, 120, 255, 0.25) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(170, 120, 255, 0.25) 1px, transparent 1px);
+  background-size: 40px 40px;
+  transform-origin: center bottom;
+  animation: sc-grid 5s linear infinite;
+  mask-image: linear-gradient(to top, #000 10%, transparent 80%);
+  -webkit-mask-image: linear-gradient(to top, #000 10%, transparent 80%);
+}
+@keyframes sc-grid {
+  from { background-position: 0 0; }
+  to { background-position: 0 40px; }
+}
+.sc-shop-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.55;
+}
+.sc-shop-orb-1 {
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, #ff4dd8, transparent 70%);
+  top: -60px;
+  left: -40px;
+  animation: sc-float 7s ease-in-out infinite;
+}
+.sc-shop-orb-2 {
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(circle, #4d9bff, transparent 70%);
+  bottom: -90px;
+  right: -50px;
+  animation: sc-float 9s ease-in-out infinite reverse;
+}
+@keyframes sc-float {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(20px, -20px); }
+}
+.sc-shop-ui {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 0;
+  z-index: 2;
+}
+.sc-shop-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px 12px;
+}
+.sc-shop-brand {
+  font-weight: 800;
+  letter-spacing: 4px;
+  font-size: 18px;
+  background: linear-gradient(90deg, #ff6ec4, #7873f5, #4dd0ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.sc-shop-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sc-shop-search {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  position: relative;
+}
+.sc-shop-search::after {
+  content: "";
+  position: absolute;
+  width: 7px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.7);
+  bottom: -2px;
+  right: -4px;
+  transform: rotate(45deg);
+}
+.sc-shop-cart {
+  font-size: 12px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 5px 10px;
+  border-radius: 20px;
+}
+.sc-shop-rows {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  overflow: hidden;
+}
+.sc-shop-track {
+  display: flex;
+  gap: 12px;
+  width: max-content;
+  padding: 0 12px;
+}
+.sc-shop-left {
+  animation: sc-marquee-left 18s linear infinite;
+}
+.sc-shop-right {
+  animation: sc-marquee-right 18s linear infinite;
+}
+.sc-shop:hover .sc-shop-track {
+  animation-play-state: paused;
+}
+@keyframes sc-marquee-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes sc-marquee-right {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+.sc-shop-card {
+  flex-shrink: 0;
+  width: 132px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 8px;
+  backdrop-filter: blur(6px);
+  transition: transform 0.3s ease;
+}
+.sc-shop-card:hover {
+  transform: translateY(-6px);
+}
+.sc-shop-thumb {
+  height: 70px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+}
+.sc-shop-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px 2px;
+}
+.sc-shop-name {
+  font-size: 12px;
+  color: #fff;
+  font-weight: 500;
+}
+.sc-shop-price {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffd36e;
+}
+.sc-shop-cta {
+  display: flex;
+  justify-content: center;
+  padding: 12px 18px 0;
+}
+.sc-shop-cta button {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0a0612;
+  background: linear-gradient(90deg, #ff6ec4, #7873f5);
+  border: none;
+  border-radius: 30px;
+  padding: 9px 22px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px -8px rgba(255, 110, 196, 0.9);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.sc-shop-cta button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px -8px rgba(120, 115, 245, 1);
+}

@@ -60,16 +60,22 @@ const Navbar = () => {
   return (
     <>
       <div className="header">
-        <a href="/#" className="navbar-title" data-cursor="disable">
-          Logo
-        </a>
-        <a
-          href="mailto:harshvar027@gmail.com"
-          className="navbar-connect"
-          data-cursor="disable"
-        >
-          harshvar027@gmail.com
-        </a>
+        <div className="navbar-left">
+          <a href="/#" className="navbar-title" data-cursor="disable">
+            <img
+              src="/images/logo.png"
+              alt="Harshvardhan — Designer, Developer, Creator"
+              className="navbar-logo"
+            />
+          </a>
+          <a
+            href="mailto:harshvar027@gmail.com"
+            className="navbar-connect"
+            data-cursor="disable"
+          >
+            harshvar027@gmail.com
+          </a>
+        </div>
         <ul>
           <li>
             <a data-href="#about" href="#about">

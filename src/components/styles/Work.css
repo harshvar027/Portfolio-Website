@@ -24,7 +24,7 @@
   position: relative;
   z-index: 2;
   margin-top: 80px;
-  margin-bottom: 120px;
+  margin-bottom: 0;
   isolation: isolate;
 }
 .work-container {
@@ -99,6 +99,10 @@
 }
 .work-info > p {
   width: 90%;
+}
+.work-showcase {
+  width: 100%;
+  display: flex;
 }
 .work-image {
   display: flex;

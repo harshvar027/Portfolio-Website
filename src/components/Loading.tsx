@@ -1,92 +1,166 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./styles/Loading.css";
 import { useLoading } from "../context/LoadingProvider";
 
-import Marquee from "react-fast-marquee";
+const PHRASES = [
+  "WEB DEV",
+  "FULL-STACK DEV",
+  "WEB ARCHITECTURE",
+  "UI ENGINEERING",
+  "CREATIVE DEV",
+  "3D / MOTION",
+];
+
+// Descending reel so each increment drops in from the top — a "falling" counter.
+const REEL = [9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
+
+// The line is one unique set duplicated end-to-end so the tracking camera can
+// pan infinitely with a seamless wrap.
+const DOMINO_UNIQUE = 18;
+const DOMINO_COUNT = DOMINO_UNIQUE * 2;
+
+const FallReel = ({ value, active }: { value: number; active: boolean }) => (
+  <span className={`loading-reel ${active ? "" : "loading-reel-idle"}`}>
+    <span
+      className="loading-reel-track"
+      style={{ transform: `translateY(${-(9 - value)}em)` }}
+    >
+      {REEL.map((n) => (
+        <span className="loading-reel-digit" key={n}>
+          {n}
+        </span>
+      ))}
+    </span>
+  </span>
+);
 
 const Loading = ({ percent }: { percent: number }) => {
   const { setIsLoading } = useLoading();
-  const [loaded, setLoaded] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [clicked, setClicked] = useState(false);
+  const [display, setDisplay] = useState(0);
+  const [exiting, setExiting] = useState(false);
 
-  if (percent >= 100) {
-    setTimeout(() => {
-      setLoaded(true);
-      setTimeout(() => {
-        setIsLoaded(true);
-      }, 1000);
-    }, 600);
-  }
+  const targetRef = useRef(0);
+  const rafRef = useRef<number>(0);
+  const completedRef = useRef(false);
 
   useEffect(() => {
-    import("./utils/initialFX").then((module) => {
-      if (isLoaded) {
-        setClicked(true);
-        setTimeout(() => {
-          if (module.initialFX) {
-            module.initialFX();
-          }
-          setIsLoading(false);
-        }, 900);
-      }
-    });
-  }, [isLoaded]);
+    targetRef.current = Math.min(100, Math.max(0, percent));
+  }, [percent]);
 
-  function handleMouseMove(e: React.MouseEvent<HTMLElement>) {
-    const { currentTarget: target } = e;
-    const rect = target.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    target.style.setProperty("--mouse-x", `${x}px`);
-    target.style.setProperty("--mouse-y", `${y}px`);
-  }
+  // Smoothly interpolate toward the incoming target so the counter rises
+  // continuously even when the source progress jumps.
+  useEffect(() => {
+    const tick = () => {
+      setDisplay((prev) => {
+        const target = targetRef.current;
+        const next = prev + (target - prev) * 0.08;
+        return target - next < 0.05 ? target : next;
+      });
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (percent >= 100 && !completedRef.current) {
+      completedRef.current = true;
+      const t = setTimeout(() => setExiting(true), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [percent]);
+
+  useEffect(() => {
+    if (!exiting) return;
+    let revealTimer: ReturnType<typeof setTimeout>;
+    let doneTimer: ReturnType<typeof setTimeout>;
+    import("./utils/initialFX").then((module) => {
+      revealTimer = setTimeout(() => module.initialFX?.(), 250);
+      doneTimer = setTimeout(() => setIsLoading(false), 1300);
+    });
+    return () => {
+      clearTimeout(revealTimer);
+      clearTimeout(doneTimer);
+    };
+  }, [exiting]);
+
+  const rounded = Math.round(display);
+  const hundreds = Math.floor(rounded / 100) % 10;
+  const tens = Math.floor(rounded / 10) % 10;
+  const units = rounded % 10;
 
   return (
-    <>
+    <div className={`loading-screen ${exiting ? "loading-exit" : ""}`}>
+      <div className="loading-grid"></div>
+
       <div className="loading-header">
         <a href="/#" className="loader-title" data-cursor="disable">
-          Logo
+          <img
+            src="/images/logo.png"
+            alt="Harshvardhan — Designer, Developer, Creator"
+            className="loader-logo"
+          />
         </a>
-        <div className={`loaderGame ${clicked && "loader-out"}`}>
-          <div className="loaderGame-container">
-            <div className="loaderGame-in">
-              {[...Array(27)].map((_, index) => (
-                <div className="loaderGame-line" key={index}></div>
-              ))}
-            </div>
-            <div className="loaderGame-ball"></div>
+        <span className="loading-tag">Portfolio · 2026</span>
+      </div>
+
+      {/* Cinematic tracking shot down a long line of toppling dominoes */}
+      <div className="loading-stage">
+        <div className="loading-domino-scene">
+          <div
+            className="loading-domino-rail"
+            style={{ "--n": DOMINO_UNIQUE } as React.CSSProperties}
+          >
+            <span className="loading-domino-floor"></span>
+            {[...Array(DOMINO_COUNT)].map((_, i) => (
+              <span
+                className={`loading-domino ${i % 5 === 0 ? "is-accent" : ""}`}
+                key={i}
+                style={
+                  {
+                    "--i": i,
+                    zIndex: DOMINO_COUNT - i,
+                  } as React.CSSProperties
+                }
+              ></span>
+            ))}
           </div>
         </div>
       </div>
-      <div className="loading-screen">
-        <div className="loading-marquee">
-          <Marquee>
-            <span> A Creative Developer</span> <span>A Creative Designer</span>
-            <span> A Creative Developer</span> <span>A Creative Designer</span>
-          </Marquee>
+
+      <div className="loading-foot">
+        <div className="loading-foot-left">
+          <span className="loading-label">Loading</span>
+          <div className="loading-counter" aria-label={`${rounded} percent`}>
+            <FallReel value={hundreds} active={rounded >= 100} />
+            <FallReel value={tens} active={rounded >= 10} />
+            <FallReel value={units} active={true} />
+            <span className="loading-percent">%</span>
+          </div>
         </div>
+
+        {/* Vertical ticker cycling through the disciplines */}
+        <div className="loading-ticker">
+          <div className="loading-ticker-track">
+            {[...PHRASES, ...PHRASES].map((p, i) => (
+              <span className="loading-ticker-item" key={i}>
+                <em></em>
+                {p}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="loading-bar">
         <div
-          className={`loading-wrap ${clicked && "loading-clicked"}`}
-          onMouseMove={(e) => handleMouseMove(e)}
+          className="loading-bar-fill"
+          style={{ transform: `scaleX(${display / 100})` }}
         >
-          <div className="loading-hover"></div>
-          <div className={`loading-button ${loaded && "loading-complete"}`}>
-            <div className="loading-container">
-              <div className="loading-content">
-                <div className="loading-content-in">
-                  Loading <span>{percent}%</span>
-                </div>
-              </div>
-              <div className="loading-box"></div>
-            </div>
-            <div className="loading-content2">
-              <span>Welcome</span>
-            </div>
-          </div>
+          <span className="loading-bar-glow"></span>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
