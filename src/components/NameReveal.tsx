@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import Matter from "matter-js";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import "./styles/NameReveal.css";
-
 const WORDS = ["HARSHVARDHAN", "SINGH"];
 
 type Letter = {
@@ -126,35 +126,23 @@ const NameReveal = () => {
 
     buildScene();
 
-    const mouse = Mouse.create(canvas);
-    (mouse as unknown as { pixelRatio: number }).pixelRatio = dpr;
-    const mouseConstraint = MouseConstraint.create(engine, {
-      mouse,
-      constraint: { stiffness: 0.18, render: { visible: false } },
-    });
-    World.add(engine.world, mouseConstraint);
+    const enableDrag = ScrollTrigger.isTouch !== 1;
+    if (enableDrag) {
+      const mouse = Mouse.create(canvas);
+      (mouse as unknown as { pixelRatio: number }).pixelRatio = dpr;
+      const mouseConstraint = MouseConstraint.create(engine, {
+        mouse,
+        constraint: { stiffness: 0.18, render: { visible: false } },
+      });
+      World.add(engine.world, mouseConstraint);
 
-    // Let page scroll/touch pass through instead of being captured by Matter.
-    const m = mouse as unknown as {
-      mousewheel: EventListener;
-      mousemove: EventListener;
-      mousedown: EventListener;
-      mouseup: EventListener;
-    };
-    canvas.removeEventListener("wheel", m.mousewheel);
-    canvas.removeEventListener("mousewheel", m.mousewheel);
-    canvas.removeEventListener("DOMMouseScroll", m.mousewheel);
-    canvas.removeEventListener("touchmove", m.mousemove);
-    canvas.removeEventListener("touchstart", m.mousedown);
-    canvas.removeEventListener("touchend", m.mouseup);
-
-    Events.on(mouseConstraint, "startdrag", () => {
-      canvas.style.cursor = "grabbing";
-    });
-    Events.on(mouseConstraint, "enddrag", () => {
-      canvas.style.cursor = "grab";
-    });
-
+      Events.on(mouseConstraint, "startdrag", () => {
+        canvas.style.cursor = "grabbing";
+      });
+      Events.on(mouseConstraint, "enddrag", () => {
+        canvas.style.cursor = "grab";
+      });
+    }
     let raf = 0;
     const draw = () => {
       ctx.clearRect(0, 0, W, H);

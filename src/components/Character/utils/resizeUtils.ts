@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { initScrollTimelines } from "../../utils/GsapScroll";
+import { initScrollTimelines, scheduleScrollLayoutRefresh } from "../../utils/GsapScroll";
+import { smoother } from "../../utils/scrollSmoother";
 
 export default function handleResize(
   renderer: THREE.WebGLRenderer,
@@ -16,7 +17,12 @@ export default function handleResize(
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
   const workTrigger = ScrollTrigger.getById("work");
-  const preservedIds = new Set(["work", "particle-morph"]);
+  const preservedIds = new Set([
+    "work",
+    "particle-morph",
+    "career-tl",
+    "career-parallax",
+  ]);
   ScrollTrigger.getAll().forEach((trigger) => {
     const id = trigger.vars.id as string | undefined;
     if (trigger !== workTrigger && !preservedIds.has(id ?? "")) {
@@ -24,4 +30,7 @@ export default function handleResize(
     }
   });
   initScrollTimelines(character, camera);
+  scheduleScrollLayoutRefresh(() => {
+    smoother?.refresh(false);
+  });
 }

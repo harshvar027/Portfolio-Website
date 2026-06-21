@@ -19,6 +19,10 @@
   --text-dim: #a8a4ae;
   --gradient-accent: linear-gradient(120deg, #ffffff 0%, #d9c4ff 45%, #9a6bff 100%);
   --gradient-aurora: linear-gradient(135deg, #7f40ff, #fb8dff, #c2a4ff);
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-smooth: 0.55s;
+  --duration-quick: 0.38s;
 }
 
 /* ---- Text selection & focus -------------------------------------------- */
@@ -58,6 +62,80 @@
 /* ==========================================================================
    AMBIENT BACKGROUND — animated aurora + vignette
    ========================================================================== */
+/* Scroll-morphing site backdrop — royale black at top, royal purple as you scroll.
+   Base layer spans the document; morph layer is fixed and fades in via --bg-morph
+   (driven by SiteGradient.tsx + ScrollTrigger). */
+.site-gradient {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.site-gradient-base {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 90% 55% at 50% -15%,
+      rgba(28, 22, 48, 0.22) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 12% 25%,
+      rgba(18, 14, 32, 0.35) 0%,
+      transparent 50%
+    ),
+    linear-gradient(180deg, #050506 0%, #060608 40%, #08070f 100%);
+}
+
+.site-gradient-morph {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: var(--bg-morph);
+  will-change: opacity;
+  background:
+    radial-gradient(
+      ellipse 130% 65% at 50% 85%,
+      rgba(127, 64, 255, 0.42) 0%,
+      transparent 58%
+    ),
+    radial-gradient(
+      ellipse 75% 45% at 88% 55%,
+      rgba(196, 129, 255, 0.22) 0%,
+      transparent 52%
+    ),
+    radial-gradient(
+      ellipse 55% 35% at 8% 60%,
+      rgba(90, 45, 160, 0.18) 0%,
+      transparent 48%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(18, 12, 32, 0.15) 0%,
+      rgba(36, 22, 58, 0.45) 35%,
+      rgba(52, 32, 88, 0.72) 65%,
+      rgba(68, 42, 110, 0.92) 85%,
+      rgba(78, 53, 124, 1) 100%
+    );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-gradient-morph {
+    opacity: 0.55;
+  }
+}
+
+/* The fixed aurora backdrop is now fully covered by .site-gradient, so disable
+   it to save GPU (the music-reactive glow rendered here was already occluded). */
+.ambient-bg,
+.ambient-vignette {
+  display: none;
+}
+
 .ambient-bg {
   position: fixed;
   inset: 0;
@@ -275,7 +353,10 @@
   100% { opacity: 0; transform: translate(-50%, 12px); }
 }
 @media (max-width: 1024px) {
-  .scroll-cue { display: none; }
+  .scroll-cue {
+    transform: translateX(-50%) scale(0.85);
+    bottom: 16px;
+  }
 }
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(14px); }

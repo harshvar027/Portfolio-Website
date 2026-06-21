@@ -26,27 +26,25 @@ export const particleMorphVertexShader = /* glsl */ `
     float wAmt = 1.0 - ep;
     float t = uTime;
 
-    // ── RIVER FLOW: traveling waves drifting horizontally like water ──
-    float wave1 = sin(aSrc.x * 1.1 - t * 0.9 + aSeed * 1.5) * 0.20;
-    float wave2 = sin(aSrc.x * 2.4 - t * 1.4 + aSrc.y * 0.6) * 0.09;
-    float wave3 = cos(aSrc.y * 1.6 + t * 0.55) * 0.05;
+    // ── RIVER FLOW: strong traveling waves before morph ──
+    float wave1 = sin(aSrc.x * 1.35 - t * 1.15 + aSeed * 1.8) * 0.34;
+    float wave2 = sin(aSrc.x * 2.8 - t * 1.65 + aSrc.y * 0.75) * 0.16;
+    float wave3 = cos(aSrc.y * 1.9 + t * 0.85 + aSeed * 4.2) * 0.10;
+    float wave4 = sin(t * 0.55 + aSrc.x * 0.45 + aSeed * 9.0) * 0.08;
     float wy = wave1 + wave2 + wave3;
 
-    float wx = cos(aSrc.x * 0.7 - t * 0.6 + aSeed * 3.1) * 0.07
-             + sin(t * 0.4 + aSeed * 6.28) * 0.04;
+    float wx = cos(aSrc.x * 0.85 - t * 0.95 + aSeed * 3.1) * 0.14
+             + sin(t * 0.65 + aSeed * 6.28) * 0.09
+             + wave4;
 
-    // Sweep gently toward destination as the morph begins
-    float sweepP = clamp((uProgress - 0.05) / 0.5, 0.0, 1.0);
-    float sweepEase = sweepP * sweepP * (3.0 - 2.0 * sweepP);
-    float midX = mix(aSrc.x, aDst.x, sweepEase * 0.4);
-    float midY = mix(aSrc.y, aDst.y, sweepEase * 0.22);
-
-    vec3 midPos = vec3(
-      midX + wx * wAmt * (1.0 - sweepEase),
-      midY + wy * wAmt * (1.0 - sweepEase),
-      0.0
+    // Idle wave field — grains drift like water until morph takes over
+    vec3 wavePos = vec3(
+      aSrc.x + wx * wAmt,
+      aSrc.y + wy * wAmt,
+      aSrc.z
     );
-    vec3 pos = mix(midPos, aDst, ep);
+
+    vec3 pos = mix(wavePos, aDst, ep);
 
     // Subtle shimmer once locked into the shape
     pos.x += sin(t * 2.0 + aSeed * 12.0) * 0.004 * ep;

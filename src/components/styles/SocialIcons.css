@@ -11,7 +11,7 @@
   position: absolute;
   left: -20px;
   bottom: 20px;
-  display: none;
+  display: flex;
   flex-direction: column;
   gap: 8px;
   z-index: 999;
@@ -88,9 +88,41 @@ div.resume-button span {
   width: 100%;
   z-index: 99999;
 }
+@media only screen and (max-width: 599px) {
+  .social-icons {
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 12px;
+    flex-direction: row;
+    gap: 12px;
+    padding: 8px 14px;
+    background: rgba(11, 8, 12, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 40px;
+    backdrop-filter: blur(8px);
+  }
+  .social-icons a {
+    font-size: 20px;
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+  }
+  .social-icons span {
+    width: 36px;
+    height: 36px;
+  }
+  .resume-button {
+    display: none;
+  }
+}
+@media only screen and (min-width: 600px) and (max-width: 899px) {
+  .social-icons a {
+    font-size: 22px;
+  }
+}
 @media only screen and (min-width: 900px) {
   .social-icons {
-    display: flex;
     gap: 20px;
   }
   .social-icons a {

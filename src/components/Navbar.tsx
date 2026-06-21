@@ -1,30 +1,29 @@
-import { useEffect } from "react";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useEffect, useState } from "react";
 import HoverLinks from "./HoverLinks";
-import { gsap } from "gsap";
-import { ScrollSmoother } from "gsap/ScrollSmoother";
+import { useMusicReactive } from "../context/MusicReactiveContext";
+import { smoother } from "./utils/scrollSmoother";
 import "./styles/Navbar.css";
 
-gsap.registerPlugin(ScrollSmoother, ScrollTrigger);
-export let smoother: ScrollSmoother;
-
 const Navbar = () => {
+  const { isPlaying, activeTrack, openMusicSearch } = useMusicReactive();
+  const [menuOpen, setMenuOpen] = useState(false);
+
   useEffect(() => {
-    if (!document.querySelector("#smooth-wrapper")) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    const onResize = () => {
+      if (window.innerWidth > 767) setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("resize", onResize);
+    };
+  }, []);
 
-    smoother = ScrollSmoother.create({
-      wrapper: "#smooth-wrapper",
-      content: "#smooth-content",
-      smooth: 1.7,
-      speed: 1.7,
-      effects: true,
-      autoResize: true,
-      ignoreMobileResize: true,
-    });
-
-    smoother.scrollTop(0);
-    smoother.paused(true);
-
+  useEffect(() => {
     const links = document.querySelectorAll(".header ul a");
     const clickHandlers: Array<{ el: Element; handler: (e: Event) => void }> =
       [];
@@ -36,7 +35,7 @@ const Navbar = () => {
           const anchor = e.currentTarget as HTMLAnchorElement;
           const section = anchor.getAttribute("data-href");
           if (section) {
-            smoother.scrollTo(section, true, "top top");
+            smoother?.scrollTo(section, true, "top top");
           }
         }
       };
@@ -44,22 +43,15 @@ const Navbar = () => {
       clickHandlers.push({ el: elem, handler });
     });
 
-    const onResize = () => {
-      ScrollSmoother.refresh(true);
-    };
-    window.addEventListener("resize", onResize);
-
     return () => {
       clickHandlers.forEach(({ el, handler }) =>
         el.removeEventListener("click", handler)
       );
-      window.removeEventListener("resize", onResize);
-      smoother?.kill();
     };
   }, []);
   return (
     <>
-      <div className="header">
+      <div className={`header${menuOpen ? " nav-open" : ""}`}>
         <div className="navbar-left">
           <a href="/#" className="navbar-title" data-cursor="disable">
             <img
@@ -75,8 +67,39 @@ const Navbar = () => {
           >
             harshvar027@gmail.com
           </a>
+          <button
+            type="button"
+            className="navbar-music-btn"
+            onClick={openMusicSearch}
+            data-cursor="disable"
+            data-magnetic="0.25"
+            data-squish
+            title={isPlaying ? "Change song" : "Pick a song"}
+          >
+            <span className="navbar-music-icon" aria-hidden="true">
+              ♪
+            </span>
+            <span className="navbar-music-label">
+              {isPlaying && activeTrack
+                ? activeTrack.name
+                : "Pick song"}
+            </span>
+          </button>
         </div>
-        <ul>
+        <button
+          type="button"
+          className="nav-toggle"
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={menuOpen}
+          aria-controls="primary-nav"
+          onClick={() => setMenuOpen((open) => !open)}
+          data-cursor="disable"
+        >
+          <span className="nav-toggle-bar" aria-hidden="true"></span>
+          <span className="nav-toggle-bar" aria-hidden="true"></span>
+          <span className="nav-toggle-bar" aria-hidden="true"></span>
+        </button>
+        <ul id="primary-nav" onClick={() => setMenuOpen(false)}>
           <li>
             <a data-href="#about" href="#about">
               <HoverLinks text="ABOUT" />
@@ -88,12 +111,23 @@ const Navbar = () => {
             </a>
           </li>
           <li>
+            <a data-href="#soundscape" href="#soundscape">
+              <HoverLinks text="MUSIC" />
+            </a>
+          </li>
+          <li>
             <a data-href="#contact" href="#contact">
               <HoverLinks text="CONTACT" />
             </a>
           </li>
         </ul>
       </div>
+
+      <div
+        className={`nav-backdrop${menuOpen ? " is-visible" : ""}`}
+        onClick={() => setMenuOpen(false)}
+        aria-hidden="true"
+      ></div>
 
       <div className="landing-circle1"></div>
       <div className="landing-circle2"></div>

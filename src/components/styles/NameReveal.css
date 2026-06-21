@@ -2,7 +2,7 @@
   position: relative;
   width: var(--cWidth);
   max-width: var(--cMaxWidth);
-  margin: 60px auto;
+  margin: 60px auto 80px;
 }
 
 .name-reveal-head {

@@ -1,11 +1,17 @@
 import { SplitText } from "gsap/SplitText";
 import gsap from "gsap";
-import { smoother } from "../Navbar";
+import { scheduleScrollLayoutRefresh } from "./GsapScroll";
+import { enableScroll } from "./scrollSmoother";
 
 export function initialFX() {
-  document.body.style.overflowY = "auto";
-  smoother.paused(false);
   document.getElementsByTagName("main")[0].classList.add("main-active");
+
+  if (window.innerWidth > 1024) {
+    gsap.set(".about-section", { autoAlpha: 0 });
+    gsap.set(".about-me", { y: "-50%" });
+  }
+
+  enableScroll();
   gsap.to("body", {
     backgroundColor: "#0b080c",
     duration: 0.5,
@@ -82,6 +88,10 @@ export function initialFX() {
 
   LoopText(landingText2, landingText3);
   LoopText(landingText4, landingText5);
+
+  requestAnimationFrame(() => {
+    scheduleScrollLayoutRefresh();
+  });
 }
 
 function LoopText(Text1: SplitText, Text2: SplitText) {

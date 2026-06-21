@@ -18,6 +18,8 @@ import {
   type ImageSample,
 } from "./particleMorphUtils";
 import { anchorHostBaseStyle, useAnchorSync } from "../../hooks/useAnchorRect";
+import { smoother } from "../utils/scrollSmoother";
+import { scheduleScrollLayoutRefresh } from "../utils/GsapScroll";
 import "./ParticleMorph.css";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -71,7 +73,7 @@ const ParticleMorphLayer = () => {
     let points: THREE.Points | null = null;
     let renderer: THREE.WebGLRenderer | null = null;
     let rafId = 0;
-    let scrollTween: gsap.core.Tween | null = null;
+    let morphTrigger: ScrollTrigger | null = null;
     let imageSamples: ImageSample[] | null = null;
 
     const scene = new THREE.Scene();
@@ -143,20 +145,33 @@ const ParticleMorphLayer = () => {
       camera.aspect = w / Math.max(h, 1);
       camera.updateProjectionMatrix();
       buildParticles();
+      morphTrigger?.refresh();
     };
 
     const initScroll = () => {
-      scrollTween = gsap.to(scrollState, {
-        raw: 1,
-        ease: "none",
-        scrollTrigger: {
-          id: "particle-morph",
-          trigger: section,
-          start: "top bottom",
-          end: "center center",
-          scrub: 0.4,
-          invalidateOnRefresh: true,
+      morphTrigger?.kill();
+      morphTrigger = null;
+      scrollState.raw = 0;
+      scrollState.smooth = 0;
+
+      morphTrigger = ScrollTrigger.create({
+        id: "particle-morph",
+        trigger: section,
+        // Grain field when the section enters; fully morphed at viewport center.
+        start: "top bottom",
+        end: "center center",
+        scrub: true,
+        invalidateOnRefresh: true,
+        onUpdate: (self) => {
+          scrollState.raw = self.progress;
         },
+      });
+
+      scrollState.raw = morphTrigger.progress;
+      scrollState.smooth = morphTrigger.progress;
+      scheduleScrollLayoutRefresh(() => {
+        ScrollTrigger.refresh(false);
+        smoother?.refresh(false);
       });
     };
 
@@ -179,14 +194,19 @@ const ParticleMorphLayer = () => {
 
     const animate = (ts: number) => {
       rafId = requestAnimationFrame(animate);
-      // Skip all GPU work while the section is off-screen.
-      if (!visibleRef.current) return;
-      scrollState.smooth += (scrollState.raw - scrollState.smooth) * 0.08;
-      if (material && renderer) {
-        material.uniforms.uTime.value = ts * 0.001;
-        material.uniforms.uProgress.value = scrollState.smooth;
-        renderer.render(scene, camera);
+
+      if (morphTrigger) {
+        scrollState.raw = morphTrigger.progress;
       }
+      // Keep morph progress locked to scroll (no extra lag behind scrub).
+      scrollState.smooth = scrollState.raw;
+
+      // Skip GPU work while the section is off-screen.
+      if (!visibleRef.current || !material || !renderer) return;
+
+      material.uniforms.uTime.value = ts * 0.001;
+      material.uniforms.uProgress.value = scrollState.smooth;
+      renderer.render(scene, camera);
     };
 
     const start = () => {
@@ -206,7 +226,9 @@ const ParticleMorphLayer = () => {
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 
       setSize();
-      initScroll();
+      requestAnimationFrame(() => {
+        initScroll();
+      });
       window.addEventListener("resize", setSize);
       host.addEventListener("mousemove", onMouseMove);
       host.addEventListener("mouseleave", onMouseLeave);
@@ -231,8 +253,8 @@ const ParticleMorphLayer = () => {
       window.removeEventListener("resize", setSize);
       host.removeEventListener("mousemove", onMouseMove);
       host.removeEventListener("mouseleave", onMouseLeave);
-      scrollTween?.scrollTrigger?.kill();
-      scrollTween?.kill();
+      morphTrigger?.kill();
+      ScrollTrigger.getById("particle-morph")?.kill();
       geometry?.dispose();
       material?.dispose();
       renderer?.dispose();

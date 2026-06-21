@@ -1,0 +1,167 @@
+/* =============================================================================
+   responsive.css  —  loaded LAST (after index.css + all component styles)
+   -----------------------------------------------------------------------------
+   This site was already comprehensively responsive (per-component breakpoints,
+   clamp() typography, --cWidth/--vh system, canvas resize handlers, ScrollSmoother
+   refresh on resize). This file therefore ONLY adds non-destructive safety-nets
+   and the mobile hamburger/off-canvas menu. No existing breakpoints are removed
+   and no !important is used, so the pixel-perfect desktop design is untouched.
+
+   OVERRIDES MADE (and why):
+   1. Global media safety-net  — img/video get `max-width:100%` so no asset can
+        cause horizontal overflow. (height left untouched on purpose: the landing
+        character image relies on height:100%, so a global height:auto would break it.)
+   2. Touch tap-targets        — interactive controls get a >=44x44px hit area only
+        on coarse-pointer (touch) devices, so layout/visuals on desktop are unchanged.
+   3. Mobile navbar -> hamburger (<=767px) — the 4 nav links move into an off-canvas
+        panel toggled by a hamburger button. Same links, same font family, same
+        accent colors are preserved; only the layout/positioning changes on mobile.
+        Desktop nav (>=768px) is completely unaffected.
+   ========================================================================== */
+
+/* -----------------------------------------------------------------------------
+   1. GLOBAL MEDIA SAFETY-NET
+   -------------------------------------------------------------------------- */
+img,
+video {
+  max-width: 100%;
+}
+
+/* -----------------------------------------------------------------------------
+   2. TOUCH TAP-TARGETS (coarse pointers only — desktop untouched)
+   -------------------------------------------------------------------------- */
+@media (hover: none) and (pointer: coarse) {
+  .navbar-music-btn {
+    min-height: 44px;
+  }
+  .nav-toggle {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   3. HAMBURGER TOGGLE BUTTON (base — hidden on desktop)
+   -------------------------------------------------------------------------- */
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+  margin: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  box-sizing: border-box;
+  z-index: 10000;
+}
+
+.nav-toggle-bar {
+  display: block;
+  width: 22px;
+  height: 2px;
+  border-radius: 2px;
+  background: #eae5ec;
+  transition:
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Backdrop behind the off-canvas panel (hidden until mobile + open) */
+.nav-backdrop {
+  display: none;
+}
+
+/* -----------------------------------------------------------------------------
+   3b. MOBILE NAV — off-canvas panel (<=767px)
+   Overrides the existing compact-row nav rules in Navbar.css (same specificity,
+   later source order wins — no !important needed).
+   -------------------------------------------------------------------------- */
+@media only screen and (max-width: 767px) {
+  .nav-toggle {
+    display: flex;
+  }
+
+  .header ul {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: min(78vw, 320px);
+    height: 100vh;
+    height: 100svh;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    column-gap: 0;
+    row-gap: 28px;
+    margin: 0;
+    padding: 96px 32px 32px;
+    box-sizing: border-box;
+    /* Preserve the desktop link styling (font/weight inherit from .header ul li) */
+    font-size: 18px;
+    background: rgba(10, 9, 16, 0.92);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-left: 1px solid rgba(194, 164, 255, 0.18);
+    transform: translateX(100%);
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 9999;
+  }
+
+  .header.nav-open ul {
+    transform: translateX(0);
+  }
+
+  /* Keep the accent-on-hover and the lighter resting color used elsewhere */
+  .header ul li {
+    color: #eae5ec;
+  }
+
+  .header ul li a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+      visibility 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 9998;
+  }
+
+  .nav-backdrop.is-visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Hamburger morphs into an X when open */
+  .header.nav-open .nav-toggle-bar:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+  .header.nav-open .nav-toggle-bar:nth-child(2) {
+    opacity: 0;
+  }
+  .header.nav-open .nav-toggle-bar:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+}
+
+/* Respect reduced-motion (site already opts into this elsewhere) */
+@media (prefers-reduced-motion: reduce) {
+  .header ul,
+  .nav-backdrop,
+  .nav-toggle-bar {
+    transition-duration: 0.01ms;
+  }
+}

@@ -12,7 +12,7 @@ gsap.registerPlugin(ScrollTrigger, ScrollSmoother, SplitText);
 
 export default function setSplitText() {
   ScrollTrigger.config({ ignoreMobileResize: true });
-  if (window.innerWidth < 900) return;
+  if (window.innerWidth < 480) return;
   const paras: NodeListOf<ParaElement> = document.querySelectorAll(".para");
   const titles: NodeListOf<ParaElement> = document.querySelectorAll(".title");
 
@@ -20,6 +20,8 @@ export default function setSplitText() {
   const ToggleAction = "play pause resume reverse";
 
   paras.forEach((para: ParaElement) => {
+    if (para.closest(".about-section")) return;
+
     para.classList.add("visible");
     if (para.anim) {
       para.anim.progress(1).kill();
@@ -51,6 +53,8 @@ export default function setSplitText() {
   });
 
   titles.forEach((title: ParaElement) => {
+    if (title.closest(".about-section")) return;
+
     if (title.anim) {
       title.anim.progress(1).kill();
       title.split?.revert();

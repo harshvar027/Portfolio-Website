@@ -23,6 +23,31 @@
     height: 210px;
   }
 }
+@media only screen and (max-width: 1024px) {
+  .sc {
+    height: 280px;
+    border-radius: 14px;
+  }
+  .sc-carousel-label {
+    font-size: 18px;
+  }
+  .sc-carousel-ring {
+    width: 120px;
+    height: 150px;
+  }
+}
+@media only screen and (max-width: 480px) {
+  .sc {
+    height: 220px;
+  }
+  .sc-shop-card {
+    width: 110px;
+  }
+  .sc-shop-thumb {
+    height: 58px;
+    font-size: 24px;
+  }
+}
 
 /* ============================================================
    1. 3D MERRY-GO-ROUND CAROUSEL
@@ -158,25 +183,35 @@
 .sc-ai-ui {
   position: absolute;
   inset: 0;
-  padding: 18px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  gap: 10px;
   pointer-events: none;
 }
+.sc-ai-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  z-index: 1;
+}
 .sc-ai-badge {
-  align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
-  letter-spacing: 1px;
+  font-size: 10px;
+  letter-spacing: 0.8px;
   color: #cfe9ff;
   background: rgba(10, 25, 45, 0.55);
   border: 1px solid rgba(120, 200, 255, 0.25);
-  padding: 6px 12px;
+  padding: 5px 10px;
   border-radius: 30px;
   backdrop-filter: blur(6px);
+  max-width: 100%;
+  white-space: nowrap;
 }
 .sc-ai-pulse {
   width: 8px;
@@ -197,20 +232,26 @@
   background: rgba(8, 16, 30, 0.6);
   border: 1px solid rgba(120, 160, 255, 0.25);
   border-radius: 14px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   backdrop-filter: blur(8px);
   box-shadow: 0 10px 30px -12px rgba(60, 120, 255, 0.6);
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
 }
 .sc-ai-spark {
   color: #7bdcff;
   font-size: 16px;
 }
 .sc-ai-text {
-  font-size: 14px;
+  font-size: 13px;
   color: #eaf4ff;
   font-weight: 300;
   white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
 }
 .sc-ai-caret {
   display: inline-block;
@@ -226,20 +267,20 @@
   50% { opacity: 0; }
 }
 .sc-ai-chips {
-  position: absolute;
-  top: 18px;
-  right: 18px;
   display: flex;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 5px;
+  width: 100%;
 }
 .sc-ai-chips span {
-  font-size: 10px;
-  letter-spacing: 1px;
+  font-size: 9px;
+  letter-spacing: 0.8px;
   color: #bfe0ff;
   background: rgba(40, 90, 160, 0.3);
   border: 1px solid rgba(120, 180, 255, 0.25);
-  padding: 4px 9px;
+  padding: 3px 8px;
   border-radius: 20px;
+  white-space: nowrap;
 }
 
 /* ============================================================

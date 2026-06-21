@@ -11,21 +11,31 @@ import ParticleMorphLayer, { ParticleMorphSpacer } from "./ParticleMorph";
 import SocialIcons from "./SocialIcons";
 import TechStack, { TechStackSpacer } from "./TechStack";
 import WhatIDo from "./WhatIDo";
+import MusicNotch from "./Music/MusicNotch";
+import MusicInviteModal from "./MusicInvite/MusicInviteModal";
+import Soundscape from "./Soundscape";
+import SiteGradient from "./SiteGradient";
 import Work from "./Work";
 import setSplitText from "./utils/splitText";
+import { enableScroll, refreshScrollSmoother } from "./utils/scrollSmoother";
+import { initSiteAnimations } from "./utils/siteAnimations";
+import { useMusicReactive } from "../context/MusicReactiveContext";
 
 const MainContainer = ({ children }: PropsWithChildren) => {
   const [isDesktopView, setIsDesktopView] = useState<boolean>(
     window.innerWidth > 1024
   );
   const [siteReady, setSiteReady] = useState(false);
+  const { openInviteAfterLoad } = useMusicReactive();
 
   useEffect(() => {
     const resizeHandler = () => {
       setIsDesktopView(window.innerWidth > 1024);
+      refreshScrollSmoother();
     };
     setSplitText();
     window.addEventListener("resize", resizeHandler);
+
     return () => {
       window.removeEventListener("resize", resizeHandler);
     };
@@ -42,11 +52,22 @@ const MainContainer = ({ children }: PropsWithChildren) => {
     check();
   }, []);
 
+  useEffect(() => {
+    if (!siteReady) return;
+    enableScroll();
+    openInviteAfterLoad();
+    // Opt-in premium micro-interactions (magnetic / squish / scramble).
+    const disposeSiteAnimations = initSiteAnimations();
+    return () => disposeSiteAnimations();
+  }, [siteReady, openInviteAfterLoad]);
+
   return (
     <div className="container-main">
       <div className="ambient-bg" aria-hidden="true" />
       <div className="ambient-vignette" aria-hidden="true" />
       <div className="grain-overlay" aria-hidden="true" />
+      <MusicNotch />
+      <MusicInviteModal />
       <Cursor />
       <Navbar />
       <SocialIcons />
@@ -54,20 +75,24 @@ const MainContainer = ({ children }: PropsWithChildren) => {
       <div id="smooth-wrapper">
         <div id="smooth-content">
           <div className="container-main">
+            <SiteGradient />
             <Landing>{!isDesktopView && children}</Landing>
             <About />
             <WhatIDo />
             <Career />
-            {isDesktopView && <TechStackSpacer />}
-            <Work />
-            <ParticleMorphSpacer />
-            <NameReveal />
+            <div className="purple-atmosphere-zone">
+              <TechStackSpacer />
+              <Work />
+              <Soundscape />
+              <ParticleMorphSpacer />
+              <NameReveal />
+            </div>
             <Contact />
             <Comments />
           </div>
         </div>
       </div>
-      {isDesktopView && siteReady && <TechStack />}
+      {siteReady && <TechStack />}
       {siteReady && <ParticleMorphLayer />}
     </div>
   );

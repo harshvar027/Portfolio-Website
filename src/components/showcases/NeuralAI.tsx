@@ -164,8 +164,15 @@ const NeuralAI = () => {
     <div className="sc sc-ai" data-cursor="disable">
       <canvas ref={canvasRef} className="sc-ai-canvas" />
       <div className="sc-ai-ui">
-        <div className="sc-ai-badge">
-          <span className="sc-ai-pulse" /> AI Engine · online
+        <div className="sc-ai-header">
+          <div className="sc-ai-badge">
+            <span className="sc-ai-pulse" /> AI Engine · online
+          </div>
+          <div className="sc-ai-chips">
+            <span>Vision</span>
+            <span>LLM</span>
+            <span>Audio</span>
+          </div>
         </div>
         <div className="sc-ai-prompt">
           <span className="sc-ai-spark">✦</span>
@@ -173,11 +180,6 @@ const NeuralAI = () => {
             {typed}
             <span className="sc-ai-caret" />
           </span>
-        </div>
-        <div className="sc-ai-chips">
-          <span>Vision</span>
-          <span>LLM</span>
-          <span>Audio</span>
         </div>
       </div>
     </div>

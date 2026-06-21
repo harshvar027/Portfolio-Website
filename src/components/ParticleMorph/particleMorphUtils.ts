@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-export const PARTICLE_COUNT = 6500;
+export const PARTICLE_COUNT = 7800;
 
 /** Put your profile PNG in public/textures/ and update this path. */
 export const PARTICLE_PROFILE_IMAGE = "/textures/particle-profile.png";
@@ -201,15 +201,17 @@ export function buildHeadCloud(n: number, vw: number, vh: number): ParticlePoint
   return pts;
 }
 
-/** Flowing wave band across the lower screen. */
+/** Flowing wave field — spread across most of the viewport. */
 export function buildWaveCloud(n: number, vw: number, vh: number): ParticlePoint[] {
   const pts: ParticlePoint[] = [];
   for (let i = 0; i < n; i++) {
-    const x = (Math.random() - 0.5) * vw * 1.05;
-    const yBase = -vh * 0.5 + Math.random() * vh * 0.58;
-    const slope = (x / vw) * vh * 0.08;
-    const y = yBase + slope + (Math.random() - 0.5) * vh * 0.08;
-    pts.push({ x, y, z: (Math.random() - 0.5) * 0.3 });
+    const x = (Math.random() - 0.5) * vw * 1.15;
+    const band = Math.random();
+    const yBase = -vh * 0.52 + band * vh * 0.92;
+    const slope = (x / vw) * vh * 0.1;
+    const ripple = Math.sin(x * 0.35 + band * 6.28) * vh * 0.04;
+    const y = yBase + slope + ripple + (Math.random() - 0.5) * vh * 0.06;
+    pts.push({ x, y, z: (Math.random() - 0.5) * 0.35 });
   }
   return pts;
 }

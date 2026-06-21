@@ -6,6 +6,7 @@
   position: relative;
   opacity: 1;
   height: 100vh;
+  height: 100svh;
   width: var(--cWidth);
   max-width: 1920px;
   margin: auto;
@@ -51,11 +52,11 @@
   color: var(--accentColor);
 }
 .what-box-in {
+  display: flex;
   flex-direction: column;
   height: 500px;
   margin-left: 200px;
   position: relative;
-  display: none;
 }
 .what-content {
   width: 450px;
@@ -304,16 +305,22 @@
 @media only screen and (max-width: 1024px) {
   .whatIDO {
     height: auto;
+    min-height: auto;
     padding: 50px 0px;
     padding-bottom: 50px;
   }
   .what-box-in {
-    height: 500px;
-    margin-left: -50px;
+    display: flex;
+    height: auto;
+    min-height: 420px;
+    margin-left: 0;
+    width: 100%;
   }
   .what-content {
-    padding: 50px;
-    width: 500px;
+    padding: 40px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
   .what-content p {
     font-size: 14px;
@@ -339,6 +346,11 @@
     margin: 50px 0;
     font-size: 55px;
     line-height: 53px;
+    white-space: normal;
+  }
+  .what-intro {
+    margin-right: 0;
+    max-width: 100%;
   }
   .what-box:first-child {
     justify-content: left;

@@ -56,6 +56,68 @@
   object-position: center 22%;
   display: block;
 }
+
+.navbar-music-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 160px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(194, 164, 255, 0.28);
+  background: rgba(194, 164, 255, 0.08);
+  color: #eae5ec;
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition:
+    border-color 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.navbar-music-btn:hover {
+  border-color: rgba(194, 164, 255, 0.45);
+  background: rgba(194, 164, 255, 0.14);
+  transform: translateY(-1px);
+}
+
+.navbar-music-icon {
+  color: var(--accentColor);
+  font-size: 14px;
+}
+
+.navbar-music-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media only screen and (max-width: 499px) {
+  .header {
+    padding: 12px 0;
+  }
+  .header ul {
+    flex-direction: row;
+    align-items: center;
+    font-size: 11px;
+    column-gap: 14px;
+    row-gap: 0;
+  }
+  .navbar-logo {
+    height: 32px;
+    width: 32px;
+  }
+  .navbar-left {
+    gap: 12px;
+  }
+  .navbar-music-btn {
+    max-width: 110px;
+    padding: 7px 10px;
+    font-size: 11px;
+  }
+}
 @media only screen and (min-width: 500px) {
   .header {
     padding: 20px 0px;

@@ -23,6 +23,7 @@ const Contact = () => {
               target="_blank"
               rel="noopener noreferrer"
               data-cursor="disable"
+              data-magnetic="0.2"
               className="contact-social"
             >
               Github <MdArrowOutward />
@@ -32,6 +33,7 @@ const Contact = () => {
               target="_blank"
               rel="noopener noreferrer"
               data-cursor="disable"
+              data-magnetic="0.2"
               className="contact-social"
             >
               Linkedin <MdArrowOutward />
@@ -41,6 +43,7 @@ const Contact = () => {
               target="_blank"
               rel="noopener noreferrer"
               data-cursor="disable"
+              data-magnetic="0.2"
               className="contact-social"
             >
               guns.lol <MdArrowOutward />
@@ -50,6 +53,7 @@ const Contact = () => {
               target="_blank"
               rel="noopener noreferrer"
               data-cursor="disable"
+              data-magnetic="0.2"
               className="contact-social"
             >
               Instagram <MdArrowOutward />

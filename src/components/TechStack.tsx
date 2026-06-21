@@ -80,10 +80,12 @@ function createTechMaterial(texture: THREE.Texture) {
   });
 }
 
-const SPHERE_COUNT = techItems.length * 3;
+const SPHERE_COUNT = techItems.length * 10;
+const BALL_SIZE = 1.2;
+const BALL_SCALES = [0.75, 0.9, 1.0, 1.12, 1.25];
 
 const spheres = [...Array(SPHERE_COUNT)].map(() => ({
-  scale: [0.7, 1, 0.8, 1, 1][Math.floor(Math.random() * 5)],
+  scale: BALL_SCALES[Math.floor(Math.random() * BALL_SCALES.length)] * BALL_SIZE,
 }));
 
 const sphereGeometry = new THREE.SphereGeometry(1, 28, 28);
@@ -127,7 +129,7 @@ function SphereGeo({
       linearDamping={0.75}
       angularDamping={0.15}
       friction={0.2}
-      position={[r(20), r(20) - 25, r(20) - 10]}
+      position={[r(36), r(30) - 16, r(36) - 10]}
       ref={api}
       colliders={false}
     >
@@ -177,7 +179,7 @@ function Pointer({ vec = new THREE.Vector3(), isActive }: PointerProps) {
       colliders={false}
       ref={ref}
     >
-      <BallCollider args={[2]} />
+      <BallCollider args={[3.0]} />
     </RigidBody>
   );
 }
@@ -214,13 +216,13 @@ const TechStack = () => {
     <div
       ref={hostRef}
       className="techstack-portal"
-      style={{ ...anchorHostBaseStyle, pointerEvents: "auto" }}
+      style={anchorHostBaseStyle}
     >
       <Canvas
         shadows
         frameloop={isActive ? "always" : "demand"}
         gl={{ alpha: true, stencil: false, depth: true, antialias: false }}
-        camera={{ position: [0, 0, 20], fov: 32.5, near: 1, far: 100 }}
+        camera={{ position: [0, 0, 24], fov: 40, near: 1, far: 120 }}
         onCreated={(state) => (state.gl.toneMappingExposure = 1.5)}
         className="tech-canvas"
       >

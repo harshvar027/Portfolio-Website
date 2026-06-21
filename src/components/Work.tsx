@@ -1,11 +1,14 @@
 import "./styles/Work.css";
 import "./showcases/showcases.css";
 import { Carousel3D, Structure3D, NeuralAI, EcommerceUI } from "./showcases";
+import TiltCard from "./TiltCard";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import { smoother } from "./utils/scrollSmoother";
+import { scheduleScrollLayoutRefresh } from "./utils/GsapScroll";
 
-gsap.registerPlugin(useGSAP);
+gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 type Showcase = "carousel" | "structure" | "ai" | "ecommerce";
 
@@ -56,110 +59,185 @@ const renderShowcase = (type: Showcase) => {
 
 const Work = () => {
   useGSAP(() => {
-  // Recomputed on every ScrollTrigger refresh so measurements stay correct
-  // even when fonts / the smooth-scroller / the 3D showcases settle late.
-  function getTranslateX() {
-    const box = document.getElementsByClassName("work-box");
-    if (!box.length || !document.querySelector(".work-container")) return 0;
-    const rectLeft = document
-      .querySelector(".work-container")!
-      .getBoundingClientRect().left;
-    const rect = box[0].getBoundingClientRect();
-    const parentWidth = box[0].parentElement!.getBoundingClientRect().width;
-    const padding = parseInt(window.getComputedStyle(box[0]).padding) / 2;
-    return rect.width * box.length - (rectLeft + parentWidth) + padding;
-  }
+    let timeline: gsap.core.Timeline | null = null;
 
-  let timeline: gsap.core.Timeline | null = null;
+    const stage = document.querySelector(
+      ".work-cards-stage"
+    ) as HTMLElement | null;
+    const flex = document.querySelector(".work-flex") as HTMLElement | null;
 
-  // Build the pin/horizontal-scroll trigger. This MUST run *after*
-  // ScrollSmoother has been created, otherwise the trigger binds to the wrong
-  // scroller and the section never scrolls. useGSAP runs as a layout effect
-  // (before Navbar's ScrollSmoother.create in a passive effect), so we wait for
-  // the smoother to be live — signalled by `main.main-active` — before building.
-  const build = () => {
-    if (timeline) return;
-    if (getTranslateX() <= 0) return;
-
-    timeline = gsap.timeline({
-      scrollTrigger: {
-        trigger: ".work-section",
-        start: "top top",
-        end: () => `+=${getTranslateX()}`,
-        scrub: true,
-        pin: true,
-        anticipatePin: 1,
-        invalidateOnRefresh: true,
-        id: "work",
-      },
-    });
-
-    timeline.to(".work-flex", {
-      x: () => -getTranslateX(),
-      ease: "none",
-    });
-
-    ScrollTrigger.refresh();
-  };
-
-  let rafId = 0;
-  const waitForSmoother = () => {
-    if (
-      document.querySelector("main.main-active") &&
-      document.getElementsByClassName("work-box").length
-    ) {
-      build();
-      return;
+    function getCards() {
+      if (!flex) return [];
+      return [...flex.querySelectorAll(".work-box-tilt")] as HTMLElement[];
     }
-    rafId = requestAnimationFrame(waitForSmoother);
-  };
-  waitForSmoother();
 
-  // Re-measure once everything (fonts + heavy canvas/WebGL showcases) has
-  // settled, so the section pins centred before the horizontal scroll begins.
-  const refresh = () => ScrollTrigger.refresh();
-  window.addEventListener("load", refresh);
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(refresh);
-  }
+    /** Pan the full row — all cards stay in view; only shifts when row overflows. */
+    function measurePanRange() {
+      if (!stage || !flex) return { startX: 0, endX: 0 };
 
-  // Clean up (optional, good practice)
-  return () => {
-    cancelAnimationFrame(rafId);
-    window.removeEventListener("load", refresh);
-    timeline?.kill();
-    ScrollTrigger.getById("work")?.kill();
-  };
-}, []);
+      gsap.set(flex, { x: 0 });
+
+      const stageWidth = stage.clientWidth;
+      const flexWidth = flex.scrollWidth;
+      const overflow = Math.max(0, flexWidth - stageWidth);
+
+      if (overflow === 0) {
+        const centered = (stageWidth - flexWidth) / 2;
+        return { startX: centered, endX: centered };
+      }
+
+      return { startX: 0, endX: -overflow };
+    }
+
+    function getScrollLength(cardCount: number) {
+      if (cardCount <= 1) return 0;
+      return (cardCount - 1) * window.innerHeight * 0.38 + window.innerHeight * 0.2;
+    }
+
+    function setFocusedCard(index: number) {
+      getCards().forEach((card, i) => {
+        card.classList.toggle("is-focused", i === index);
+      });
+    }
+
+    const build = () => {
+      if (window.innerWidth <= 1024) {
+        getCards().forEach((card) => card.classList.remove("is-focused"));
+        return;
+      }
+      if (!flex || !stage) return;
+
+      const cards = getCards();
+      if (cards.length < 2) return;
+
+      const { startX, endX } = measurePanRange();
+      const overflow = Math.max(0, flex.scrollWidth - stage.clientWidth);
+
+      if (overflow === 0) {
+        timeline?.kill();
+        ScrollTrigger.getById("work")?.kill();
+        timeline = null;
+        gsap.set(flex, { x: startX });
+        getCards().forEach((card) => card.classList.remove("is-focused"));
+        return;
+      }
+
+      const scrollLength = getScrollLength(cards.length);
+      if (scrollLength <= 0) return;
+
+      timeline?.kill();
+      ScrollTrigger.getById("work")?.kill();
+      timeline = null;
+
+      gsap.set(flex, { x: startX });
+      setFocusedCard(0);
+
+      timeline = gsap.timeline({
+        defaults: { ease: "none" },
+        scrollTrigger: {
+          trigger: ".work-section",
+          start: "top top",
+          end: () => `+=${scrollLength}`,
+          scrub: 1,
+          pin: true,
+          pinSpacing: true,
+          anticipatePin: 1,
+          invalidateOnRefresh: true,
+          id: "work",
+          onLeaveBack: () => {
+            gsap.set(flex, { x: startX });
+            setFocusedCard(0);
+          },
+          onUpdate: (self) => {
+            const idx = Math.round(self.progress * (cards.length - 1));
+            setFocusedCard(idx);
+          },
+        },
+      });
+
+      timeline.fromTo(flex, { x: startX }, { x: endX, duration: 1 });
+
+      ScrollTrigger.refresh(false);
+      scheduleScrollLayoutRefresh(() => {
+        smoother?.refresh(false);
+      });
+    };
+
+    let rafId = 0;
+    const waitForSmoother = () => {
+      if (
+        document.querySelector("main.main-active") &&
+        document.querySelector(".work-cards-stage")
+      ) {
+        build();
+        return;
+      }
+      rafId = requestAnimationFrame(waitForSmoother);
+    };
+    waitForSmoother();
+
+    const refresh = () => {
+      if (document.querySelector("main.main-active")) {
+        build();
+      }
+    };
+    window.addEventListener("load", refresh);
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(refresh);
+    }
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("load", refresh);
+      timeline?.kill();
+      ScrollTrigger.getById("work")?.kill();
+      gsap.set(".work-flex", { clearProps: "x" });
+      getCards().forEach((card) => card.classList.remove("is-focused"));
+    };
+  }, []);
+
   return (
     <div className="work-section" id="work">
       <div className="work-container section-container">
-        <h2>
-          My <span>Work</span>
-        </h2>
-        <p className="work-intro">
-          Interactive, design-led builds — from immersive 3D experiences and
-          AI-powered platforms to polished e-commerce. Hover any preview to
-          play with it.
-        </p>
-        <div className="work-flex">
-          {projects.map((project, index) => (
-            <div className="work-box" key={index}>
-              <div className="work-info">
-                <div className="work-title">
-                  <h3>0{index + 1}</h3>
-
-                  <div>
-                    <h4>{project.title}</h4>
-                    <p>{project.category}</p>
+        <div className="work-header">
+          <h2>
+            My <span>Work</span>
+          </h2>
+          <p className="work-intro">
+            Interactive, design-led builds — from immersive 3D experiences and
+            AI-powered platforms to polished e-commerce. Tap or hover any preview
+            to play with it.
+          </p>
+        </div>
+        <div className="work-cards-stage">
+          <div className="work-flex">
+            {projects.map((project, index) => (
+              <TiltCard
+                key={index}
+                className="work-box-tilt"
+                maxTilt={14}
+                depth={32}
+                hoverScale={1.03}
+              >
+                <div className="work-box">
+                  <div className="work-info">
+                    <div className="work-title">
+                      <h3>0{index + 1}</h3>
+                      <div>
+                        <h4>{project.title}</h4>
+                        <p>{project.category}</p>
+                      </div>
+                    </div>
+                    <h4>Tools & Features</h4>
+                    <p>{project.tools}</p>
+                  </div>
+                  <div className="work-showcase">
+                    {renderShowcase(project.showcase)}
                   </div>
                 </div>
-                <h4>Tools & Features</h4>
-                <p>{project.tools}</p>
-              </div>
-              <div className="work-showcase">{renderShowcase(project.showcase)}</div>
-            </div>
-          ))}
+              </TiltCard>
+            ))}
+          </div>
         </div>
       </div>
     </div>

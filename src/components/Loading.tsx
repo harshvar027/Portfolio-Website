@@ -57,24 +57,43 @@ const Loading = ({ percent }: { percent: number }) => {
   useEffect(() => {
     if (percent >= 100 && !completedRef.current) {
       completedRef.current = true;
-      const t = setTimeout(() => setExiting(true), 1000);
+      const t = setTimeout(() => setExiting(true), 500);
       return () => clearTimeout(t);
     }
   }, [percent]);
 
   useEffect(() => {
     if (!exiting) return;
+    document.body.classList.add("site-revealing");
     let revealTimer: ReturnType<typeof setTimeout>;
     let doneTimer: ReturnType<typeof setTimeout>;
-    import("./utils/initialFX").then((module) => {
-      revealTimer = setTimeout(() => module.initialFX?.(), 250);
-      doneTimer = setTimeout(() => setIsLoading(false), 1300);
-    });
+    let cancelled = false;
+
+    const finish = () => {
+      if (cancelled) return;
+      setIsLoading(false);
+      document.body.classList.remove("site-revealing");
+    };
+
+    doneTimer = setTimeout(finish, 900);
+
+    import("./utils/initialFX")
+      .then((module) => {
+        if (cancelled) return;
+        revealTimer = setTimeout(() => module.initialFX?.(), 200);
+      })
+      .catch((err) => {
+        console.error("[Loading] initialFX import failed:", err);
+        document.querySelector("main")?.classList.add("main-active");
+      });
+
     return () => {
+      cancelled = true;
       clearTimeout(revealTimer);
       clearTimeout(doneTimer);
+      document.body.classList.remove("site-revealing");
     };
-  }, [exiting]);
+  }, [exiting, setIsLoading]);
 
   const rounded = Math.round(display);
   const hundreds = Math.floor(rounded / 100) % 10;
@@ -83,6 +102,7 @@ const Loading = ({ percent }: { percent: number }) => {
 
   return (
     <div className={`loading-screen ${exiting ? "loading-exit" : ""}`}>
+      <div className="loading-curtain" aria-hidden="true"></div>
       <div className="loading-grid"></div>
 
       <div className="loading-header">
@@ -157,44 +177,56 @@ const Loading = ({ percent }: { percent: number }) => {
 
 export default Loading;
 
-export const setProgress = (setLoading: (value: number) => void) => {
-  let percent: number = 0;
+export type ProgressHandle = {
+  setMilestone: (value: number) => void;
+  loaded: () => Promise<number>;
+  clear: () => void;
+};
 
-  let interval = setInterval(() => {
-    if (percent <= 50) {
-      let rand = Math.round(Math.random() * 5);
-      percent = percent + rand;
-      setLoading(percent);
-    } else {
-      clearInterval(interval);
-      interval = setInterval(() => {
-        percent = percent + Math.round(Math.random());
-        setLoading(percent);
-        if (percent > 91) {
-          clearInterval(interval);
-        }
-      }, 2000);
+export const setProgress = (
+  setLoading: (value: number) => void
+): ProgressHandle => {
+  let displayed = 0;
+  let target = 8;
+  let finishing = false;
+  let interval: ReturnType<typeof setInterval>;
+
+  interval = setInterval(() => {
+    if (finishing || displayed >= target) return;
+
+    const gap = target - displayed;
+    const step = Math.max(1, Math.ceil(gap * (displayed < 50 ? 0.25 : 0.2)));
+    displayed = Math.min(target, displayed + step);
+    setLoading(displayed);
+  }, 40);
+
+  function setMilestone(value: number) {
+    target = Math.max(target, Math.min(100, value));
+    if (target > displayed && !finishing) {
+      const gap = target - displayed;
+      const step = Math.max(1, Math.ceil(gap * 0.35));
+      displayed = Math.min(target, displayed + step);
+      setLoading(displayed);
     }
-  }, 100);
+  }
 
   function clear() {
+    finishing = true;
     clearInterval(interval);
     setLoading(100);
   }
 
   function loaded() {
-    return new Promise<number>((resolve) => {
-      clearInterval(interval);
-      interval = setInterval(() => {
-        if (percent < 100) {
-          percent++;
-          setLoading(percent);
-        } else {
-          resolve(percent);
-          clearInterval(interval);
-        }
-      }, 2);
-    });
+    if (finishing) {
+      return Promise.resolve(100);
+    }
+    finishing = true;
+    clearInterval(interval);
+    displayed = 100;
+    target = 100;
+    setLoading(100);
+    return Promise.resolve(100);
   }
-  return { loaded, percent, clear };
+
+  return { setMilestone, loaded, clear };
 };

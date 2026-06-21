@@ -1,0 +1,449 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  fetchAudioFeatures,
+  playOnDevice,
+  searchSpotifyTracks,
+} from "../lib/spotify/api";
+import {
+  buildSpotifyAuthUrl,
+  clearOAuthQueryFromUrl,
+  exchangeCodeForTokens,
+  isOAuthCodeHandled,
+  isSpotifyConfigured,
+  markOAuthCodeHandled,
+  refreshAccessToken,
+} from "../lib/spotify/pkce";
+import type { SpotifyTokens, SpotifyTrack } from "../lib/spotify/types";
+
+const TOKEN_KEY = "spotify_tokens";
+const RETURN_KEY = "spotify-open-search";
+
+export function consumeSpotifyReturnFlag() {
+  const shouldOpen = sessionStorage.getItem(RETURN_KEY) === "1";
+  if (shouldOpen) sessionStorage.removeItem(RETURN_KEY);
+  return shouldOpen;
+}
+
+function readTokens(): SpotifyTokens | null {
+  try {
+    const raw = localStorage.getItem(TOKEN_KEY);
+    return raw ? (JSON.parse(raw) as SpotifyTokens) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeTokens(tokens: SpotifyTokens | null) {
+  if (tokens) {
+    localStorage.setItem(TOKEN_KEY, JSON.stringify(tokens));
+  } else {
+    localStorage.removeItem(TOKEN_KEY);
+  }
+}
+
+function loadSpotifySdk() {
+  return new Promise<void>((resolve, reject) => {
+    if (window.Spotify?.Player) {
+      resolve();
+      return;
+    }
+
+    const existing = document.querySelector(
+      'script[src="https://sdk.scdn.co/spotify-player.js"]'
+    );
+    if (existing) {
+      window.onSpotifyWebPlaybackSDKReady = () => resolve();
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://sdk.scdn.co/spotify-player.js";
+    script.async = true;
+    window.onSpotifyWebPlaybackSDKReady = () => resolve();
+    script.onerror = () => reject(new Error("Failed to load Spotify player"));
+    document.body.appendChild(script);
+  });
+}
+
+export function useSpotify() {
+  const [connected, setConnected] = useState(() => Boolean(readTokens()));
+  const [playerReady, setPlayerReady] = useState(false);
+  const [activeTrack, setActiveTrack] = useState<SpotifyTrack | null>(null);
+  const [playbackMode, setPlaybackMode] = useState<"spotify" | "preview" | null>(
+    null
+  );
+  const [volume, setVolumeState] = useState(0.7);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  const volumeRef = useRef(volume);
+  volumeRef.current = volume;
+
+  const tokensRef = useRef<SpotifyTokens | null>(readTokens());
+  const playerRef = useRef<Spotify.Player | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const ctxRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const deviceIdRef = useRef<string | null>(null);
+  const oauthProcessingRef = useRef(false);
+
+  const getAccessToken = useCallback(async () => {
+    let tokens = tokensRef.current;
+    if (!tokens) throw new Error("Not connected to Spotify");
+
+    if (Date.now() >= tokens.expiresAt - 60_000) {
+      const refreshed = await refreshAccessToken(tokens.refreshToken);
+      tokens = {
+        accessToken: refreshed.access_token,
+        refreshToken: refreshed.refresh_token ?? tokens.refreshToken,
+        expiresAt: Date.now() + refreshed.expires_in * 1000,
+      };
+      tokensRef.current = tokens;
+      writeTokens(tokens);
+    }
+
+    return tokens.accessToken;
+  }, []);
+
+  const stopPreview = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+    sourceRef.current?.disconnect();
+    sourceRef.current = null;
+    analyserRef.current?.disconnect();
+    analyserRef.current = null;
+    if (ctxRef.current?.state !== "closed") {
+      ctxRef.current?.close().catch(() => undefined);
+    }
+    ctxRef.current = null;
+  }, []);
+
+  const stopInternal = useCallback(async () => {
+    stopPreview();
+    setPlaybackMode(null);
+    setActiveTrack(null);
+    try {
+      await playerRef.current?.pause();
+    } catch {
+      /* noop */
+    }
+  }, [stopPreview]);
+
+  const initPlayerInternal = useCallback(async () => {
+    if (playerRef.current || !tokensRef.current) return;
+
+    await loadSpotifySdk();
+
+    const player = new window.Spotify.Player({
+      name: "Portfolio Experience",
+      getOAuthToken: (cb) => {
+        getAccessToken()
+          .then(cb)
+          .catch(() => cb(""));
+      },
+      volume: volumeRef.current,
+    });
+
+    player.addListener("ready", (data: unknown) => {
+      const { device_id } = data as { device_id: string };
+      deviceIdRef.current = device_id;
+      setPlayerReady(true);
+    });
+
+    player.addListener("not_ready", () => {
+      setPlayerReady(false);
+    });
+
+    player.addListener("account_error", () => {
+      setAuthError("Spotify Premium is required for full-track playback.");
+    });
+
+    player.addListener("authentication_error", () => {
+      setAuthError("Spotify session expired. Please connect again.");
+      tokensRef.current = null;
+      writeTokens(null);
+      setConnected(false);
+    });
+
+    const connectedOk = await player.connect();
+    if (!connectedOk) {
+      throw new Error("Could not connect Spotify player");
+    }
+
+    playerRef.current = player;
+  }, [getAccessToken]);
+
+  const waitForDevice = useCallback(
+    async (timeoutMs = 8_000) => {
+      if (!playerRef.current && tokensRef.current) {
+        void initPlayerInternal();
+      }
+      const started = Date.now();
+      while (Date.now() - started < timeoutMs) {
+        if (deviceIdRef.current) return deviceIdRef.current;
+        if (!playerRef.current && tokensRef.current) {
+          await initPlayerInternal();
+        }
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      throw new Error(
+        "Spotify player is still starting — try again in a moment."
+      );
+    },
+    [initPlayerInternal]
+  );
+
+  const initPlayer = useCallback(async () => {
+    await initPlayerInternal();
+  }, [initPlayerInternal]);
+
+  const handleOAuthReturn = useCallback(async () => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const error = params.get("error");
+
+    if (error) {
+      setAuthError("Spotify connection was cancelled.");
+      clearOAuthQueryFromUrl();
+      return;
+    }
+
+    if (!code) return;
+    if (isOAuthCodeHandled(code) || oauthProcessingRef.current) {
+      clearOAuthQueryFromUrl();
+      return;
+    }
+
+    oauthProcessingRef.current = true;
+    markOAuthCodeHandled(code);
+    clearOAuthQueryFromUrl();
+
+    try {
+      const payload = await exchangeCodeForTokens(code);
+      const tokens: SpotifyTokens = {
+        accessToken: payload.access_token,
+        refreshToken: payload.refresh_token,
+        expiresAt: Date.now() + payload.expires_in * 1000,
+      };
+      tokensRef.current = tokens;
+      writeTokens(tokens);
+      setConnected(true);
+      setAuthError(null);
+      sessionStorage.setItem(RETURN_KEY, "1");
+      await initPlayer();
+    } catch (err) {
+      setAuthError(
+        err instanceof Error ? err.message : "Could not connect Spotify"
+      );
+    } finally {
+      oauthProcessingRef.current = false;
+    }
+  }, [initPlayer]);
+
+  useEffect(() => {
+    handleOAuthReturn();
+  }, [handleOAuthReturn]);
+
+  useEffect(() => {
+    if (connected && tokensRef.current) {
+      initPlayer().catch(() => undefined);
+    }
+    return () => {
+      stopPreview();
+      playerRef.current?.disconnect();
+      playerRef.current = null;
+    };
+  }, [connected, initPlayer, stopPreview]);
+
+  const login = useCallback(async () => {
+    if (!isSpotifyConfigured()) {
+      setAuthError(
+        "Add VITE_SPOTIFY_CLIENT_ID to your .env file to enable Spotify."
+      );
+      return;
+    }
+    const url = await buildSpotifyAuthUrl();
+    window.location.href = url;
+  }, []);
+
+  const logout = useCallback(async () => {
+    await stopInternal();
+    playerRef.current?.disconnect();
+    playerRef.current = null;
+    tokensRef.current = null;
+    writeTokens(null);
+    setConnected(false);
+    setPlayerReady(false);
+    deviceIdRef.current = null;
+  }, [stopInternal]);
+
+  const search = useCallback(
+    async (query: string) => {
+      const token = await getAccessToken();
+      return searchSpotifyTracks(token, query.trim());
+    },
+    [getAccessToken]
+  );
+
+  const playPreview = useCallback(
+    async (track: SpotifyTrack) => {
+      if (!track.previewUrl) {
+        throw new Error("No preview available for this track.");
+      }
+
+      stopPreview();
+
+      const audio = new Audio();
+      audio.crossOrigin = "anonymous";
+      audio.volume = volumeRef.current;
+      audio.loop = true;
+      audio.preload = "auto";
+      audio.src = track.previewUrl;
+
+      const ctx = new AudioContext();
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.82;
+
+      await ctx.resume();
+
+      try {
+        const source = ctx.createMediaElementSource(audio);
+        source.connect(analyser);
+        analyser.connect(ctx.destination);
+        sourceRef.current = source;
+      } catch {
+        analyser.connect(ctx.destination);
+      }
+
+      const startPlayback = () => audio.play();
+      try {
+        await startPlayback();
+      } catch {
+        await new Promise<void>((resolve, reject) => {
+          const onReady = () => {
+            audio.removeEventListener("canplay", onReady);
+            audio.removeEventListener("error", onError);
+            resolve();
+          };
+          const onError = () => {
+            audio.removeEventListener("canplay", onReady);
+            audio.removeEventListener("error", onError);
+            reject(new Error("Could not load preview audio."));
+          };
+          audio.addEventListener("canplay", onReady, { once: true });
+          audio.addEventListener("error", onError, { once: true });
+        });
+        await startPlayback();
+      }
+
+      audioRef.current = audio;
+      ctxRef.current = ctx;
+      analyserRef.current = analyser;
+      setPlaybackMode("preview");
+      setActiveTrack(track);
+    },
+    [stopPreview]
+  );
+
+  const playTrack = useCallback(
+    async (track: SpotifyTrack) => {
+      setAuthError(null);
+      await stopInternal();
+
+      const token = await getAccessToken();
+
+      void fetchAudioFeatures(token, track.id).then((features) => {
+        if (!features) return;
+        setActiveTrack((prev) =>
+          prev?.id === track.id
+            ? {
+                ...prev,
+                tempo: features.tempo,
+                energy: features.energy,
+                valence: features.valence,
+                danceability: features.danceability,
+              }
+            : prev
+        );
+      });
+
+      if (track.previewUrl) {
+        void playPreview(track).catch(() => undefined);
+      }
+
+      try {
+        const deviceId = await waitForDevice();
+        await playOnDevice(token, deviceId, track.uri);
+        stopPreview();
+        setPlaybackMode("spotify");
+        setActiveTrack(track);
+        setAuthError(null);
+        return;
+      } catch (err) {
+        if (track.previewUrl) {
+          if (!audioRef.current) {
+            await playPreview(track);
+          } else {
+            setPlaybackMode("preview");
+            setActiveTrack(track);
+          }
+          setAuthError(
+            err instanceof Error
+              ? `${err.message} Playing 30s preview instead.`
+              : "Playing preview instead."
+          );
+          return;
+        }
+        throw err;
+      }
+    },
+    [getAccessToken, playPreview, stopInternal, stopPreview, waitForDevice]
+  );
+
+  const stop = useCallback(async () => {
+    await stopInternal();
+  }, [stopInternal]);
+
+  const setVolume = useCallback(
+    async (value: number) => {
+      setVolumeState(value);
+      if (audioRef.current) {
+        audioRef.current.volume = value;
+      }
+      try {
+        await playerRef.current?.setVolume(value);
+      } catch {
+        /* noop */
+      }
+    },
+    []
+  );
+
+  const getAnalyser = useCallback(() => analyserRef.current, []);
+  const isPlaying = useCallback(
+    () => playbackMode !== null && activeTrack !== null,
+    [playbackMode, activeTrack]
+  );
+
+  return {
+    configured: isSpotifyConfigured(),
+    connected,
+    playerReady,
+    activeTrack,
+    playbackMode,
+    volume,
+    authError,
+    login,
+    logout,
+    search,
+    playTrack,
+    stop,
+    setVolume,
+    getAnalyser,
+    isPlaying,
+  };
+}

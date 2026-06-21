@@ -1,0 +1,15 @@
+/* The whole site now shares one continuous purple backdrop (.site-gradient),
+   so this zone no longer paints its own band — it just keeps its sections
+   transparent so the global gradient shows through seamlessly. */
+.purple-atmosphere-zone {
+  position: relative;
+}
+
+.purple-atmosphere-zone .particle-morph-section {
+  background-color: transparent;
+}
+
+.purple-atmosphere-zone .soundscape-section,
+.purple-atmosphere-zone .name-reveal-section {
+  background: transparent;
+}

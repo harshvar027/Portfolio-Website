@@ -4,9 +4,11 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 const CHAR_TRIGGER_IDS = ["char-landing", "char-about", "char-what", "char-mobile"];
 
+let registeredCharacter: THREE.Object3D | null = null;
+let registeredCamera: THREE.PerspectiveCamera | null = null;
+
 function killCharTriggers() {
   CHAR_TRIGGER_IDS.forEach((id) => ScrollTrigger.getById(id)?.kill());
-  ScrollTrigger.getById("career-tl")?.kill();
 }
 
 function hasPageSections() {
@@ -30,6 +32,11 @@ export function setCharTimeline(
   if (!charModel) return;
 
   gsap.set(charModel, { xPercent: -50 });
+
+  if (window.innerWidth > 1024) {
+    gsap.set(".about-section", { autoAlpha: 0 });
+    gsap.set(".about-me", { y: "-50%" });
+  }
 
   let intensity: number = 0;
   setInterval(() => {
@@ -107,6 +114,12 @@ export function setCharTimeline(
         )
         .to(".landing-container", { opacity: 0, duration: 0.4 }, 0)
         .to(".landing-container", { y: "40%", duration: 0.8 }, 0)
+        .fromTo(
+          ".about-section",
+          { autoAlpha: 0 },
+          { autoAlpha: 1, duration: 0.35 },
+          0.05
+        )
         .fromTo(".about-me", { y: "-50%" }, { y: "0%" }, 0);
 
       tl2
@@ -129,22 +142,32 @@ export function setCharTimeline(
           },
           0
         )
-        .to(character.rotation, { y: 0.92, x: 0.12, delay: 3, duration: 3 }, 0)
-        .to(neckBone!.rotation, { x: 0.6, delay: 2, duration: 3 }, 0)
-        .to(monitor.material, { opacity: 1, duration: 0.8, delay: 3.2 }, 0)
-        .to(screenLight.material, { opacity: 1, duration: 0.8, delay: 4.5 }, 0)
+        .to(character.rotation, { y: 0.92, x: 0.12, delay: 3, duration: 3 }, 0);
+      if (neckBone) {
+        tl2.to(neckBone.rotation, { x: 0.6, delay: 2, duration: 3 }, 0);
+      }
+      if (monitor?.material) {
+        tl2.to(monitor.material, { opacity: 1, duration: 0.8, delay: 3.2 }, 0);
+      }
+      if (screenLight?.material) {
+        tl2.to(screenLight.material, { opacity: 1, duration: 0.8, delay: 4.5 }, 0);
+      }
+      tl2
         .fromTo(
           ".what-box-in",
           { display: "none" },
           { display: "flex", duration: 0.1, delay: 6 },
           0
-        )
-        .fromTo(
+        );
+      if (monitor) {
+        tl2.fromTo(
           monitor.position,
           { y: -10, z: 2 },
           { y: 0, z: 0, delay: 1.5, duration: 3 },
           0
-        )
+        );
+      }
+      tl2
         .fromTo(
           ".character-rim",
           { opacity: 1, scaleX: 1.4 },
@@ -166,8 +189,8 @@ export function setCharTimeline(
     const tM2 = gsap.timeline({
       scrollTrigger: {
         id: "char-mobile",
-        trigger: ".what-box-in",
-        start: "top 70%",
+        trigger: ".whatIDO",
+        start: "top 85%",
         end: "bottom top",
       },
     });
@@ -175,72 +198,31 @@ export function setCharTimeline(
   }
 }
 
-export function setAllTimeline() {
-  if (!document.querySelector(".career-section")) return;
+export function refreshAllScrollAnimations() {
+  if (!registeredCharacter || !registeredCamera || !hasPageSections()) return;
+  setCharTimeline(registeredCharacter, registeredCamera);
+  ScrollTrigger.refresh(false);
+}
 
-  ScrollTrigger.getById("career-tl")?.kill();
+let scrollRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 
-  const careerTimeline = gsap.timeline({
-    scrollTrigger: {
-      id: "career-tl",
-      trigger: ".career-section",
-      start: "top 30%",
-      end: "100% center",
-      scrub: true,
-      invalidateOnRefresh: true,
-    },
-  });
-  careerTimeline
-    .fromTo(
-      ".career-timeline",
-      { maxHeight: "10%" },
-      { maxHeight: "100%", duration: 0.5 },
-      0
-    )
-    .fromTo(
-      ".career-timeline",
-      { opacity: 0 },
-      { opacity: 1, duration: 0.1 },
-      0
-    )
-    .fromTo(
-      ".career-info-box",
-      { opacity: 0 },
-      { opacity: 1, stagger: 0.1, duration: 0.5 },
-      0
-    )
-    .fromTo(
-      ".career-dot",
-      { animationIterationCount: "infinite" },
-      {
-        animationIterationCount: "1",
-        delay: 0.3,
-        duration: 0.1,
-      },
-      0
-    );
-
-  if (window.innerWidth > 1024) {
-    careerTimeline.fromTo(
-      ".career-section",
-      { y: 0 },
-      { y: "20%", duration: 0.5, delay: 0.2 },
-      0
-    );
-  } else {
-    careerTimeline.fromTo(
-      ".career-section",
-      { y: 0 },
-      { y: 0, duration: 0.5, delay: 0.2 },
-      0
-    );
-  }
+/** Debounced layout refresh — avoids breaking ScrollSmoother with repeated full rebuilds. */
+export function scheduleScrollLayoutRefresh(onComplete?: () => void) {
+  if (scrollRefreshTimer) clearTimeout(scrollRefreshTimer);
+  scrollRefreshTimer = setTimeout(() => {
+    scrollRefreshTimer = null;
+    refreshAllScrollAnimations();
+    onComplete?.();
+  }, 120);
 }
 
 export function initScrollTimelines(
   character: THREE.Object3D,
   camera: THREE.PerspectiveCamera
 ) {
+  registeredCharacter = character;
+  registeredCamera = camera;
+
   const charModel = document.querySelector(".character-model");
   if (charModel) {
     gsap.set(charModel, { xPercent: -50 });
@@ -252,8 +234,7 @@ export function initScrollTimelines(
       return;
     }
     setCharTimeline(character, camera);
-    setAllTimeline();
-    ScrollTrigger.refresh();
+    ScrollTrigger.refresh(false);
   };
   tryInit();
 }
