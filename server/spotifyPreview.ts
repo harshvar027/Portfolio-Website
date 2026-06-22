@@ -1,4 +1,4 @@
-import type { SpotifySearchResponse } from "../src/lib/spotify/types";
+import type { SpotifySearchResponse } from "../src/lib/spotify/types.js";
 
 export type PreviewTrack = {
   id: string;

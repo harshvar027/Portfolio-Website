@@ -18,5 +18,10 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts"]
+  "include": [
+    "vite.config.ts",
+    "vite-plugin-spotify-preview.ts",
+    "api/**/*.ts",
+    "server/**/*.ts"
+  ]
 }

@@ -1,4 +1,4 @@
-import { searchSpotifyPreviews } from "../../server/spotifyPreview";
+import { searchSpotifyPreviews } from "../../server/spotifyPreview.js";
 
 type Req = {
   method?: string;

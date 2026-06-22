@@ -1,6 +1,6 @@
 import type { Connect, Plugin, PreviewServer, ViteDevServer } from "vite";
 import { loadEnv } from "vite";
-import { searchSpotifyPreviews } from "./server/spotifyPreview";
+import { searchSpotifyPreviews } from "./server/spotifyPreview.js";
 
 const handler: Connect.NextHandleFunction = async (req, res, next) => {
   const path = req.url?.split("?")[0];
