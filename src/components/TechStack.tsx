@@ -80,7 +80,7 @@ function createTechMaterial(texture: THREE.Texture) {
   });
 }
 
-const SPHERE_COUNT = techItems.length * 10;
+const SPHERE_COUNT = techItems.length * 4;
 const BALL_SIZE = 1.2;
 const BALL_SCALES = [0.75, 0.9, 1.0, 1.12, 1.25];
 
@@ -88,7 +88,7 @@ const spheres = [...Array(SPHERE_COUNT)].map(() => ({
   scale: BALL_SCALES[Math.floor(Math.random() * BALL_SCALES.length)] * BALL_SIZE,
 }));
 
-const sphereGeometry = new THREE.SphereGeometry(1, 28, 28);
+const sphereGeometry = new THREE.SphereGeometry(1, 18, 18);
 
 type SphereProps = {
   vec?: THREE.Vector3;
@@ -189,6 +189,7 @@ const TechStack = () => {
   const hostRef = useRef<HTMLDivElement>(null);
   const anchor = useAnchorSync(TECHSTACK_ANCHOR_ID, hostRef);
   const isActive = anchor.visible;
+  const usePostFx = isActive && window.innerWidth > 1024;
 
   useEffect(() => {
     setMounted(true);
@@ -252,9 +253,11 @@ const TechStack = () => {
           environmentIntensity={0.5}
           environmentRotation={[0, 4, 2]}
         />
-        <EffectComposer enableNormalPass={false}>
-          <N8AO color="#0f002c" aoRadius={2} intensity={1.15} />
-        </EffectComposer>
+        {usePostFx && (
+          <EffectComposer enableNormalPass={false}>
+            <N8AO color="#0f002c" aoRadius={2} intensity={1.15} />
+          </EffectComposer>
+        )}
       </Canvas>
       <h2 className="techstack-title">My Techstack</h2>
     </div>,

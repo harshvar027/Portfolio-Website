@@ -19,6 +19,20 @@ const IDLE_METRICS: AudioMetrics = {
   buildUp: 0,
 };
 
+const METRICS_UPDATE_MS = 50;
+
+function metricsChanged(a: AudioMetrics, b: AudioMetrics): boolean {
+  return (
+    Math.abs(a.bass - b.bass) > 0.02 ||
+    Math.abs(a.mid - b.mid) > 0.02 ||
+    Math.abs(a.treble - b.treble) > 0.02 ||
+    Math.abs(a.energy - b.energy) > 0.02 ||
+    Math.abs(a.bpm - b.bpm) > 0.5 ||
+    a.beat !== b.beat ||
+    a.drop !== b.drop
+  );
+}
+
 function simulatedMetrics(
   track: SpotifyTrack,
   elapsedMs: number,
@@ -50,13 +64,34 @@ export function useMusicAnalysis(
   getAnalyser: () => AnalyserNode | null,
   getTrack: () => SpotifyTrack | null,
   isPlaying: () => boolean,
-  playbackMode: () => "spotify" | "preview" | null
+  playbackMode: () => "spotify" | "preview" | null,
+  onFrameMetrics?: (metrics: AudioMetrics) => void
 ) {
   const [metrics, setMetrics] = useState<AudioMetrics>(IDLE_METRICS);
   const stateRef = useRef(createAnalysisState());
   const rafRef = useRef(0);
   const dataRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const startedAtRef = useRef(0);
+  const lastPublishRef = useRef(0);
+  const metricsRef = useRef<AudioMetrics>(IDLE_METRICS);
+  const onFrameRef = useRef(onFrameMetrics);
+  onFrameRef.current = onFrameMetrics;
+
+  const publishMetrics = useCallback((next: AudioMetrics, force = false) => {
+    const prev = metricsRef.current;
+    metricsRef.current = next;
+    onFrameRef.current?.(next);
+
+    const now = performance.now();
+    if (
+      force ||
+      now - lastPublishRef.current >= METRICS_UPDATE_MS ||
+      metricsChanged(prev, next)
+    ) {
+      lastPublishRef.current = now;
+      setMetrics((state) => (metricsChanged(state, next) ? next : state));
+    }
+  }, []);
 
   const tick = useCallback(() => {
     const analyser = getAnalyser();
@@ -65,15 +100,15 @@ export function useMusicAnalysis(
     const mode = playbackMode();
 
     if (!playing || !track) {
-      setMetrics((prev) =>
-        prev.energy > 0.01
+      const decayed =
+        metricsRef.current.energy > 0.01
           ? {
               ...IDLE_METRICS,
-              energy: prev.energy * 0.92,
-              bass: prev.bass * 0.92,
+              energy: metricsRef.current.energy * 0.92,
+              bass: metricsRef.current.bass * 0.92,
             }
-          : IDLE_METRICS
-      );
+          : IDLE_METRICS;
+      publishMetrics(decayed);
       rafRef.current = requestAnimationFrame(tick);
       return;
     }
@@ -89,16 +124,16 @@ export function useMusicAnalysis(
         stateRef.current,
         bpmHint
       );
-      setMetrics(next);
+      publishMetrics(next);
       rafRef.current = requestAnimationFrame(tick);
       return;
     }
 
     if (!startedAtRef.current) startedAtRef.current = performance.now();
     const elapsed = performance.now() - startedAtRef.current;
-    setMetrics((prev) => simulatedMetrics(track, elapsed, prev));
+    publishMetrics(simulatedMetrics(track, elapsed, metricsRef.current));
     rafRef.current = requestAnimationFrame(tick);
-  }, [getAnalyser, getTrack, isPlaying, playbackMode]);
+  }, [getAnalyser, getTrack, isPlaying, playbackMode, publishMetrics]);
 
   useEffect(() => {
     rafRef.current = requestAnimationFrame(tick);
@@ -108,8 +143,10 @@ export function useMusicAnalysis(
   const reset = useCallback(() => {
     stateRef.current = createAnalysisState();
     startedAtRef.current = 0;
+    lastPublishRef.current = 0;
+    metricsRef.current = IDLE_METRICS;
     setMetrics(IDLE_METRICS);
   }, []);
 
-  return { metrics, reset };
+  return { metrics, metricsRef, reset };
 }

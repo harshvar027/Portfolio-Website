@@ -5,6 +5,7 @@ import TiltCard from "./TiltCard";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import { useEffect, useRef, useState } from "react";
 import { smoother } from "./utils/scrollSmoother";
 import { scheduleScrollLayoutRefresh } from "./utils/GsapScroll";
 
@@ -55,6 +56,34 @@ const renderShowcase = (type: Showcase) => {
     case "ecommerce":
       return <EcommerceUI />;
   }
+};
+
+const HEAVY_SHOWCASES: Showcase[] = ["structure", "ai"];
+
+const WorkShowcase = ({ type }: { type: Showcase }) => {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(!HEAVY_SHOWCASES.includes(type));
+
+  useEffect(() => {
+    if (!HEAVY_SHOWCASES.includes(type)) return;
+
+    const card = hostRef.current?.closest(".work-box-tilt");
+    if (!card) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setActive(entry.isIntersecting),
+      { rootMargin: "120px", threshold: 0.05 }
+    );
+    observer.observe(card);
+
+    return () => observer.disconnect();
+  }, [type]);
+
+  return (
+    <div ref={hostRef} className="work-showcase">
+      {active ? renderShowcase(type) : null}
+    </div>
+  );
 };
 
 const Work = () => {
@@ -231,9 +260,7 @@ const Work = () => {
                     <h4>Tools & Features</h4>
                     <p>{project.tools}</p>
                   </div>
-                  <div className="work-showcase">
-                    {renderShowcase(project.showcase)}
-                  </div>
+                  <WorkShowcase type={project.showcase} />
                 </div>
               </TiltCard>
             ))}

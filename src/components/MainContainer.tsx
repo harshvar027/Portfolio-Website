@@ -29,14 +29,18 @@ const MainContainer = ({ children }: PropsWithChildren) => {
   const { openInviteAfterLoad } = useMusicReactive();
 
   useEffect(() => {
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
+
     const resizeHandler = () => {
       setIsDesktopView(window.innerWidth > 1024);
-      refreshScrollSmoother();
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => refreshScrollSmoother(), 150);
     };
     setSplitText();
     window.addEventListener("resize", resizeHandler);
 
     return () => {
+      if (resizeTimer) clearTimeout(resizeTimer);
       window.removeEventListener("resize", resizeHandler);
     };
   }, []);

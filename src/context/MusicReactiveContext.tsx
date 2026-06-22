@@ -12,7 +12,8 @@ import { useHaptics } from "../hooks/useHaptics";
 import { useMusicAnalysis } from "../hooks/useMusicAnalysis";
 import { useSpotify, consumeSpotifyReturnFlag } from "../hooks/useSpotify";
 import type { AudioMetrics } from "../lib/audioAnalysis";
-import { getMoodForTrack, type MoodTheme } from "../lib/moodEngine";
+import { searchPreviewTracks } from "../lib/spotify/previewSearch";
+import { getMoodForTrack, applyMoodToDocument, type MoodTheme } from "../lib/moodEngine";
 import type { SpotifyTrack } from "../lib/spotify/types";
 
 type InviteChoice = "pending" | "accepted" | "declined";
@@ -37,7 +38,9 @@ type MusicReactiveContextValue = {
   openInviteAfterLoad: () => void;
   loginSpotify: () => Promise<void>;
   logoutSpotify: () => Promise<void>;
+  searchPreviewTracks: (query: string) => Promise<SpotifyTrack[]>;
   searchTracks: (query: string) => Promise<SpotifyTrack[]>;
+  playPreviewTrack: (track: SpotifyTrack) => Promise<void>;
   playTrack: (track: SpotifyTrack) => Promise<void>;
   stop: () => Promise<void>;
   setVolume: (v: number) => void;
@@ -71,20 +74,37 @@ export function MusicReactiveProvider({ children }: PropsWithChildren) {
     [playing, spotify]
   );
 
-  const { metrics, reset } = useMusicAnalysis(
-    spotify.getAnalyser,
-    getTrack,
-    getIsPlaying,
-    getPlaybackMode
-  );
-
-  const { supported: hapticsSupported, syncWithMetrics, stop: stopHaptics } =
-    useHaptics();
-
   const mood = useMemo(
     () => getMoodForTrack(spotify.activeTrack),
     [spotify.activeTrack]
   );
+  const moodRef = useRef(mood);
+  moodRef.current = mood;
+
+  const { supported: hapticsSupported, syncWithMetrics, stop: stopHaptics } =
+    useHaptics();
+  const playingRef = useRef(playing);
+  playingRef.current = playing;
+
+  const handleFrameMetrics = useCallback(
+    (frameMetrics: AudioMetrics) => {
+      applyMoodToDocument(moodRef.current, frameMetrics);
+      if (playingRef.current) syncWithMetrics(frameMetrics);
+    },
+    [syncWithMetrics]
+  );
+
+  const { metrics, reset } = useMusicAnalysis(
+    spotify.getAnalyser,
+    getTrack,
+    getIsPlaying,
+    getPlaybackMode,
+    handleFrameMetrics
+  );
+
+  useEffect(() => {
+    applyMoodToDocument(mood, metrics);
+  }, [mood]);
 
   useEffect(() => {
     if (consumeSpotifyReturnFlag()) {
@@ -99,23 +119,21 @@ export function MusicReactiveProvider({ children }: PropsWithChildren) {
   }, [spotify.activeTrack, spotify.playbackMode, spotify.isPlaying]);
 
   useEffect(() => {
-    if (!playing) {
-      syncWithMetrics({
-        bass: 0,
-        mid: 0,
-        treble: 0,
-        volume: 0,
-        energy: 0,
-        bpm: 90,
-        beat: false,
-        beatIntensity: 0,
-        drop: false,
-        buildUp: 0,
-      });
-      return;
-    }
-    syncWithMetrics(metrics);
-  }, [playing, metrics, syncWithMetrics]);
+    if (playing) return;
+
+    syncWithMetrics({
+      bass: 0,
+      mid: 0,
+      treble: 0,
+      volume: 0,
+      energy: 0,
+      bpm: 90,
+      beat: false,
+      beatIntensity: 0,
+      drop: false,
+      buildUp: 0,
+    });
+  }, [playing, syncWithMetrics]);
 
   const acceptInvite = useCallback(() => {
     sessionStorage.setItem(INVITE_KEY, "accepted");
@@ -149,6 +167,15 @@ export function MusicReactiveProvider({ children }: PropsWithChildren) {
       setShowInvite(true);
     }
   }, [inviteChoice]);
+
+  const playPreviewTrack = useCallback(
+    async (track: SpotifyTrack) => {
+      await spotify.playPreviewOnly(track);
+      setPlaying(true);
+      setShowInvite(false);
+    },
+    [spotify]
+  );
 
   const playTrack = useCallback(
     async (track: SpotifyTrack) => {
@@ -187,7 +214,9 @@ export function MusicReactiveProvider({ children }: PropsWithChildren) {
       openInviteAfterLoad,
       loginSpotify: spotify.login,
       logoutSpotify: spotify.logout,
+      searchPreviewTracks,
       searchTracks: spotify.search,
+      playPreviewTrack,
       playTrack,
       stop,
       setVolume: spotify.setVolume,
@@ -206,6 +235,7 @@ export function MusicReactiveProvider({ children }: PropsWithChildren) {
       openMusicSearch,
       dismissInvite,
       openInviteAfterLoad,
+      playPreviewTrack,
       playTrack,
       stop,
       hapticsSupported,

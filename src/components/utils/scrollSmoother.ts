@@ -8,6 +8,24 @@ export let smoother: ScrollSmoother | null = null;
 
 let scrollEnabled = false;
 
+function getScrollConfig() {
+  const isTouch = ScrollTrigger.isTouch === 1;
+  const isMobile = window.innerWidth <= 1024;
+  const prefersReducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)"
+  ).matches;
+
+  if (prefersReducedMotion) {
+    return { smooth: 0, effects: false };
+  }
+
+  if (isTouch || isMobile) {
+    return { smooth: 0.5, effects: false };
+  }
+
+  return { smooth: 0.85, effects: false };
+}
+
 export function initScrollSmoother() {
   if (smoother) return smoother;
 
@@ -15,12 +33,14 @@ export function initScrollSmoother() {
   const content = document.querySelector("#smooth-content");
   if (!wrapper || !content) return null;
 
+  const { smooth, effects } = getScrollConfig();
+
   try {
     smoother = ScrollSmoother.create({
       wrapper: "#smooth-wrapper",
       content: "#smooth-content",
-      smooth: 1.2,
-      effects: true,
+      smooth,
+      effects,
       autoResize: true,
       ignoreMobileResize: true,
       normalizeScroll: true,

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import setCharacter from "./utils/character";
 import setLighting from "./utils/lighting";
@@ -20,7 +20,6 @@ const Scene = () => {
   const sceneRef = useRef(new THREE.Scene());
   const { setLoading } = useLoading();
 
-  const [character, setChar] = useState<THREE.Object3D | null>(null);
   useEffect(() => {
     const container = canvasDiv.current;
     const canvas = canvasRef.current;
@@ -31,13 +30,20 @@ const Scene = () => {
     const aspect = containerSize.width / containerSize.height;
     const scene = sceneRef.current;
 
+    const isMobile =
+      window.innerWidth <= 1024 ||
+      window.matchMedia("(pointer: coarse)").matches;
+
     const renderer = new THREE.WebGLRenderer({
       canvas,
       alpha: true,
-      antialias: true,
+      antialias: !isMobile,
+      powerPreference: "high-performance",
     });
     renderer.setSize(containerSize.width, containerSize.height);
-      renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio, isMobile ? 1.25 : 1.75)
+    );
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.12;
 
@@ -74,7 +80,6 @@ const Scene = () => {
             hoverDivRef.current && animations.hover(gltf, hoverDivRef.current);
             mixer = animations.mixer;
             const character = gltf.scene;
-            setChar(character);
             scene.add(character);
             headBone = character.getObjectByName("spine006") || null;
             screenLight = character.getObjectByName("screenlight") || null;
@@ -82,9 +87,9 @@ const Scene = () => {
               light.turnOnLights();
               animations.startIntro();
             }, 800);
-            window.addEventListener("resize", () =>
-              handleResize(renderer, camera, canvasDiv, character)
-            );
+            resizeHandler = () =>
+              handleResize(renderer, camera, canvasDiv, character);
+            window.addEventListener("resize", resizeHandler);
           } catch (err) {
             console.error("Character scene setup failed:", err);
           }
@@ -117,17 +122,29 @@ const Scene = () => {
         });
       };
 
-      document.addEventListener("mousemove", (event) => {
-        onMouseMove(event);
-      });
+      document.addEventListener("mousemove", onMouseMove);
       const landingDiv = document.getElementById("landingDiv");
       if (landingDiv) {
         landingDiv.addEventListener("touchstart", onTouchStart);
         landingDiv.addEventListener("touchend", onTouchEnd);
       }
+
+      let visible = true;
+      const visibilityObserver = new IntersectionObserver(
+        ([entry]) => {
+          visible = entry.isIntersecting;
+        },
+        { rootMargin: "150px" }
+      );
+      visibilityObserver.observe(container);
+
       let frameId = 0;
+      let resizeHandler: (() => void) | null = null;
+
       const animate = () => {
         frameId = requestAnimationFrame(animate);
+        if (!visible) return;
+
         if (headBone) {
           handleHeadRotation(
             headBone,
@@ -146,16 +163,18 @@ const Scene = () => {
         renderer.render(scene, camera);
       };
       animate();
+
       return () => {
         cancelAnimationFrame(frameId);
         clearTimeout(debounce);
+        visibilityObserver.disconnect();
         scene.clear();
         renderer.dispose();
-        window.removeEventListener("resize", () =>
-          handleResize(renderer, camera, canvasDiv, character!)
-        );
+        if (resizeHandler) {
+          window.removeEventListener("resize", resizeHandler);
+        }
+        document.removeEventListener("mousemove", onMouseMove);
         if (landingDiv) {
-          document.removeEventListener("mousemove", onMouseMove);
           landingDiv.removeEventListener("touchstart", onTouchStart);
           landingDiv.removeEventListener("touchend", onTouchEnd);
         }

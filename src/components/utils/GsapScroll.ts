@@ -7,7 +7,13 @@ const CHAR_TRIGGER_IDS = ["char-landing", "char-about", "char-what", "char-mobil
 let registeredCharacter: THREE.Object3D | null = null;
 let registeredCamera: THREE.PerspectiveCamera | null = null;
 
+let intensityInterval: ReturnType<typeof setInterval> | null = null;
+
 function killCharTriggers() {
+  if (intensityInterval) {
+    clearInterval(intensityInterval);
+    intensityInterval = null;
+  }
   CHAR_TRIGGER_IDS.forEach((id) => ScrollTrigger.getById(id)?.kill());
 }
 
@@ -39,7 +45,8 @@ export function setCharTimeline(
   }
 
   let intensity: number = 0;
-  setInterval(() => {
+  if (intensityInterval) clearInterval(intensityInterval);
+  intensityInterval = setInterval(() => {
     intensity = Math.random();
   }, 200);
 

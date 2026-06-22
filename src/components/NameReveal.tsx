@@ -144,6 +144,31 @@ const NameReveal = () => {
       });
     }
     let raf = 0;
+    let visible = true;
+    let paused = false;
+
+    const visibilityObserver = new IntersectionObserver(
+      ([entry]) => {
+        visible = entry.isIntersecting;
+        if (visible && paused) {
+          paused = false;
+          Runner.run(runner, engine);
+          scheduleDraw();
+        } else if (!visible && !paused) {
+          paused = true;
+          Runner.stop(runner);
+          cancelAnimationFrame(raf);
+        }
+      },
+      { rootMargin: "100px" }
+    );
+    visibilityObserver.observe(stage);
+
+    const scheduleDraw = () => {
+      if (!visible) return;
+      raf = requestAnimationFrame(draw);
+    };
+
     const draw = () => {
       ctx.clearRect(0, 0, W, H);
       for (const { body, char, w, h } of letters) {
@@ -176,9 +201,9 @@ const NameReveal = () => {
         ctx.fillText(char, 0, h * 0.04);
         ctx.restore();
       }
-      raf = requestAnimationFrame(draw);
+      scheduleDraw();
     };
-    raf = requestAnimationFrame(draw);
+    scheduleDraw();
 
     let resizeTimer = 0;
     const onResize = () => {
@@ -191,6 +216,7 @@ const NameReveal = () => {
       window.clearTimeout(gravityTimer);
       window.clearTimeout(resizeTimer);
       window.removeEventListener("resize", onResize);
+      visibilityObserver.disconnect();
       cancelAnimationFrame(raf);
       Runner.stop(runner);
       World.clear(engine.world, false);

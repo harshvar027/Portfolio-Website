@@ -349,6 +349,19 @@ export function useSpotify() {
     [stopPreview]
   );
 
+  const playPreviewOnly = useCallback(
+    async (track: SpotifyTrack) => {
+      if (!track.previewUrl) {
+        throw new Error("No 30-second preview available for this track.");
+      }
+
+      setAuthError(null);
+      await stopInternal();
+      await playPreview(track);
+    },
+    [playPreview, stopInternal]
+  );
+
   const playTrack = useCallback(
     async (track: SpotifyTrack) => {
       setAuthError(null);
@@ -440,6 +453,7 @@ export function useSpotify() {
     login,
     logout,
     search,
+    playPreviewOnly,
     playTrack,
     stop,
     setVolume,

@@ -13,7 +13,7 @@ Open-source version of my personal portfolio — a scroll-driven, music-reactive
 - **Tech stack showcase** — 3D floating sphere grid
 - **Particle morph** — WebGL particles that morph into a profile image on scroll
 - **Soundscape section** — music-reactive visuals tied to playback
-- **Spotify integration** — search, play, and control tracks via the Web Playback SDK
+- **Spotify integration** — search and play **30-second previews** without login; optional Premium connect for full tracks
 - **Music notch** — Dynamic Island–style now-playing UI
 - **Comments** — visitor feedback form (local dev via Vite middleware)
 
@@ -48,8 +48,13 @@ Open **http://127.0.0.1:5173** (Spotify OAuth requires `127.0.0.1`, not `localho
 
 | Variable | Description |
 |---|---|
-| `VITE_SPOTIFY_CLIENT_ID` | Spotify app client ID |
-| `VITE_SPOTIFY_REDIRECT_URI` | OAuth redirect URI (must match Spotify dashboard) |
+| `VITE_SPOTIFY_CLIENT_ID` | Spotify app client ID (public) |
+| `SPOTIFY_CLIENT_SECRET` | Spotify app client secret (**server only** — enables preview search) |
+| `VITE_SPOTIFY_REDIRECT_URI` | OAuth redirect URI for optional full-track playback |
+
+Get credentials from the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard). The client secret is under your app → Settings.
+
+**Preview search** works without visitor login. Visitors can search and hear 30-second clips. **Full tracks** still require each visitor to connect their own Spotify Premium account.
 
 Music features are optional — the site works without Spotify credentials.
 
@@ -76,7 +81,9 @@ See the official installation guide: https://gsap.com/docs/v3/Installation/
 
 Configured for [Vercel](https://vercel.com) via `vercel.json` (SPA rewrites).
 
-Set the Spotify environment variables in your Vercel project settings. Add your production URL as a redirect URI in the Spotify dashboard.
+Set `VITE_SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, and `VITE_SPOTIFY_REDIRECT_URI` in your Vercel project settings. Add your production URL as a redirect URI in the Spotify dashboard for optional Premium playback.
+
+The preview search API runs as a Vercel serverless function at `/api/spotify/search`.
 
 > **Note:** The comments API runs through a Vite dev middleware and does not persist comments in production. For production comment storage, add a serverless API route or external service.
 

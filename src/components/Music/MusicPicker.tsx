@@ -30,7 +30,8 @@ const MusicPicker = ({
     acceptInvite,
     declineInvite,
     loginSpotify,
-    searchTracks,
+    searchPreviewTracks,
+    playPreviewTrack,
     playTrack,
     stop,
     setVolume,
@@ -73,12 +74,12 @@ const MusicPicker = ({
 
   const handleSearch = async (event: FormEvent) => {
     event.preventDefault();
-    if (!query.trim() || !spotifyConnected) return;
+    if (!query.trim()) return;
 
     setSearching(true);
     setLocalError(null);
     try {
-      const tracks = await searchTracks(query.trim());
+      const tracks = await searchPreviewTracks(query.trim());
       setResults(tracks);
       if (tracks.length === 0) {
         setLocalError("No songs found — try another name or artist.");
@@ -97,7 +98,11 @@ const MusicPicker = ({
     setLoadingTrackId(track.id);
     setLocalError(null);
     try {
-      await playTrack(track);
+      if (spotifyConnected) {
+        await playTrack(track);
+      } else {
+        await playPreviewTrack(track);
+      }
       setStep("playing");
       if (layout === "modal") onClose?.();
     } catch (err) {
@@ -260,12 +265,12 @@ const MusicPicker = ({
   return (
     <div className="music-picker">
       <span className="music-picker-badge">
-        {layout === "modal" ? "Welcome" : "Soundscape"} · Spotify
+        {layout === "modal" ? "Welcome" : "Soundscape"} · 30s previews
       </span>
       <h2 className="music-picker-title">What should we play?</h2>
       <p className="music-picker-copy">
-        Search by song or artist. The site reacts to your soundtrack in real
-        time.
+        Search by song or artist — no login needed. The site reacts to 30-second
+        Spotify previews as you scroll.
       </p>
 
       <div
@@ -273,26 +278,27 @@ const MusicPicker = ({
       >
         <p>
           {spotifyConnected
-            ? "Spotify connected — search and play full tracks."
-            : "Connect Spotify Premium to search and play songs."}
+            ? "Spotify Premium connected — full tracks when available."
+            : "Optional: connect Spotify Premium for full-track playback."}
         </p>
         {!spotifyConnected ? (
           <button
             type="button"
-            className="music-picker-btn music-picker-btn-primary music-picker-btn-sm"
+            className="music-picker-btn music-picker-btn-sm"
             onClick={() => loginSpotify()}
             disabled={!spotifyConfigured}
           >
-            Connect
+            Connect Premium
           </button>
         ) : (
-          <span className="music-picker-badge">Ready</span>
+          <span className="music-picker-badge">Premium ready</span>
         )}
       </div>
 
       {!spotifyConfigured && (
         <p className="music-picker-note">
-          Add <code>VITE_SPOTIFY_CLIENT_ID</code> to enable Spotify search.
+          Add <code>SPOTIFY_CLIENT_SECRET</code> and{" "}
+          <code>VITE_SPOTIFY_CLIENT_ID</code> to enable search.
         </p>
       )}
 
@@ -302,12 +308,12 @@ const MusicPicker = ({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="e.g. Blinding Lights, The Weeknd"
-          disabled={!spotifyConnected || searching}
+          disabled={searching}
         />
         <button
           type="submit"
           className="music-picker-btn music-picker-btn-primary music-picker-btn-sm"
-          disabled={!spotifyConnected || searching || !query.trim()}
+          disabled={searching || !query.trim()}
         >
           {searching ? "…" : "Search"}
         </button>
@@ -317,13 +323,24 @@ const MusicPicker = ({
 
       {results.length > 0 && (
         <ul className="music-picker-results">
-          {results.map((track) => (
+          {results.map((track) => {
+            const hasPreview = Boolean(track.previewUrl);
+            const canPlay = spotifyConnected || hasPreview;
+
+            return (
             <li key={track.id}>
               <button
                 type="button"
                 className="music-picker-track"
                 onClick={() => handlePickTrack(track)}
-                disabled={loadingTrackId === track.id}
+                disabled={loadingTrackId === track.id || !canPlay}
+                title={
+                  !canPlay
+                    ? "No preview available for this track"
+                    : spotifyConnected
+                      ? "Play full track"
+                      : "Play 30s preview"
+                }
               >
                 {track.albumArt ? (
                   <img src={track.albumArt} alt="" />
@@ -332,14 +349,23 @@ const MusicPicker = ({
                 )}
                 <span className="music-picker-track-meta">
                   <strong>{track.name}</strong>
-                  <small>{track.artists}</small>
+                  <small>
+                    {track.artists}
+                    {!spotifyConnected && hasPreview ? " · 30s preview" : ""}
+                    {!hasPreview && !spotifyConnected ? " · no preview" : ""}
+                  </small>
                 </span>
                 <span className="music-picker-track-action">
-                  {loadingTrackId === track.id ? "…" : "Play"}
+                  {loadingTrackId === track.id
+                    ? "…"
+                    : !canPlay
+                      ? "—"
+                      : "Play"}
                 </span>
               </button>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
 

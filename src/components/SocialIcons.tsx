@@ -5,51 +5,81 @@ import { TbNotes } from "react-icons/tb";
 import { useEffect } from "react";
 import HoverLinks from "./HoverLinks";
 
+type IconState = {
+  link: HTMLElement;
+  rect: DOMRect;
+  mouseX: number;
+  mouseY: number;
+  currentX: number;
+  currentY: number;
+};
+
 const SocialIcons = () => {
   useEffect(() => {
-    const social = document.getElementById("social") as HTMLElement;
+    const social = document.getElementById("social") as HTMLElement | null;
+    if (!social) return;
+
+    const icons: IconState[] = [];
 
     social.querySelectorAll("span").forEach((item) => {
       const elem = item as HTMLElement;
-      const link = elem.querySelector("a") as HTMLElement;
+      const link = elem.querySelector("a") as HTMLElement | null;
+      if (!link) return;
 
       const rect = elem.getBoundingClientRect();
-      let mouseX = rect.width / 2;
-      let mouseY = rect.height / 2;
-      let currentX = 0;
-      let currentY = 0;
+      icons.push({
+        link,
+        rect,
+        mouseX: rect.width / 2,
+        mouseY: rect.height / 2,
+        currentX: 0,
+        currentY: 0,
+      });
+    });
 
-      const updatePosition = () => {
-        currentX += (mouseX - currentX) * 0.1;
-        currentY += (mouseY - currentY) * 0.1;
-
-        link.style.setProperty("--siLeft", `${currentX}px`);
-        link.style.setProperty("--siTop", `${currentY}px`);
-
-        requestAnimationFrame(updatePosition);
-      };
-
-      const onMouseMove = (e: MouseEvent) => {
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+    const handleMouseMove = (e: MouseEvent) => {
+      for (const icon of icons) {
+        const x = e.clientX - icon.rect.left;
+        const y = e.clientY - icon.rect.top;
 
         if (x < 40 && x > 10 && y < 40 && y > 5) {
-          mouseX = x;
-          mouseY = y;
+          icon.mouseX = x;
+          icon.mouseY = y;
         } else {
-          mouseX = rect.width / 2;
-          mouseY = rect.height / 2;
+          icon.mouseX = icon.rect.width / 2;
+          icon.mouseY = icon.rect.height / 2;
         }
-      };
+      }
+    };
 
-      document.addEventListener("mousemove", onMouseMove);
+    let frameId = 0;
+    const updateAll = () => {
+      for (const icon of icons) {
+        icon.currentX += (icon.mouseX - icon.currentX) * 0.1;
+        icon.currentY += (icon.mouseY - icon.currentY) * 0.1;
+        icon.link.style.setProperty("--siLeft", `${icon.currentX}px`);
+        icon.link.style.setProperty("--siTop", `${icon.currentY}px`);
+      }
+      frameId = requestAnimationFrame(updateAll);
+    };
 
-      updatePosition();
+    document.addEventListener("mousemove", handleMouseMove);
+    frameId = requestAnimationFrame(updateAll);
 
-      return () => {
-        elem.removeEventListener("mousemove", onMouseMove);
-      };
-    });
+    const handleResize = () => {
+      icons.forEach((icon, i) => {
+        const span = social.querySelectorAll("span")[i] as HTMLElement | undefined;
+        if (!span) return;
+        icon.rect = span.getBoundingClientRect();
+      });
+    };
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      document.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("resize", handleResize);
+    };
   }, []);
 
   return (
