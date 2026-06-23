@@ -37,6 +37,37 @@ const SocialIcons = () => {
       });
     });
 
+    let frameId = 0;
+    let needsUpdate = false;
+
+    const updateAll = () => {
+      let stillMoving = false;
+
+      for (const icon of icons) {
+        const prevX = icon.currentX;
+        const prevY = icon.currentY;
+        icon.currentX += (icon.mouseX - icon.currentX) * 0.1;
+        icon.currentY += (icon.mouseY - icon.currentY) * 0.1;
+        icon.link.style.setProperty("--siLeft", `${icon.currentX}px`);
+        icon.link.style.setProperty("--siTop", `${icon.currentY}px`);
+
+        if (
+          Math.abs(icon.currentX - prevX) > 0.05 ||
+          Math.abs(icon.currentY - prevY) > 0.05
+        ) {
+          stillMoving = true;
+        }
+      }
+
+      if (!stillMoving && !needsUpdate) {
+        frameId = 0;
+        return;
+      }
+
+      needsUpdate = false;
+      frameId = requestAnimationFrame(updateAll);
+    };
+
     const handleMouseMove = (e: MouseEvent) => {
       for (const icon of icons) {
         const x = e.clientX - icon.rect.left;
@@ -50,21 +81,12 @@ const SocialIcons = () => {
           icon.mouseY = icon.rect.height / 2;
         }
       }
-    };
 
-    let frameId = 0;
-    const updateAll = () => {
-      for (const icon of icons) {
-        icon.currentX += (icon.mouseX - icon.currentX) * 0.1;
-        icon.currentY += (icon.mouseY - icon.currentY) * 0.1;
-        icon.link.style.setProperty("--siLeft", `${icon.currentX}px`);
-        icon.link.style.setProperty("--siTop", `${icon.currentY}px`);
-      }
-      frameId = requestAnimationFrame(updateAll);
+      needsUpdate = true;
+      if (!frameId) frameId = requestAnimationFrame(updateAll);
     };
 
     document.addEventListener("mousemove", handleMouseMove);
-    frameId = requestAnimationFrame(updateAll);
 
     const handleResize = () => {
       icons.forEach((icon, i) => {

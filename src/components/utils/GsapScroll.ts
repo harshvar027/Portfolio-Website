@@ -8,12 +8,15 @@ let registeredCharacter: THREE.Object3D | null = null;
 let registeredCamera: THREE.PerspectiveCamera | null = null;
 
 let intensityInterval: ReturnType<typeof setInterval> | null = null;
+let screenLightTimeline: gsap.core.Timeline | null = null;
 
 function killCharTriggers() {
   if (intensityInterval) {
     clearInterval(intensityInterval);
     intensityInterval = null;
   }
+  screenLightTimeline?.kill();
+  screenLightTimeline = null;
   CHAR_TRIGGER_IDS.forEach((id) => ScrollTrigger.getById(id)?.kill());
 }
 
@@ -97,11 +100,18 @@ export function setCharTimeline(
       object.material.transparent = true;
       object.material.opacity = 0;
       object.material.emissive.set("#C8BFFF");
-      gsap.timeline({ repeat: -1, repeatRefresh: true }).to(object.material, {
-        emissiveIntensity: () => intensity * 8,
-        duration: () => Math.random() * 0.6,
-        delay: () => Math.random() * 0.1,
-      });
+      screenLightTimeline = gsap
+        .timeline({ repeat: -1 })
+        .to(object.material, {
+          emissiveIntensity: () => intensity * 8,
+          duration: 0.45,
+          ease: "sine.inOut",
+        })
+        .to(object.material, {
+          emissiveIntensity: () => intensity * 2,
+          duration: 0.45,
+          ease: "sine.inOut",
+        });
       screenLight = object;
     }
   });

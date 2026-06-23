@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import "./styles/Loading.css";
 import { useLoading } from "../context/LoadingProvider";
+import { revealSite, runLandingTextFX } from "./utils/initialFX";
 
 const PHRASES = [
   "WEB DEV",
@@ -34,6 +35,7 @@ const Loading = ({ percent }: { percent: number }) => {
   const [exiting, setExiting] = useState(false);
 
   const targetRef = useRef(0);
+  const displayRef = useRef(0);
   const rafRef = useRef<number>(0);
   const completedRef = useRef(false);
 
@@ -42,12 +44,21 @@ const Loading = ({ percent }: { percent: number }) => {
   }, [percent]);
 
   useEffect(() => {
+    let lastUiUpdate = 0;
+
     const tick = () => {
-      setDisplay((prev) => {
-        const target = targetRef.current;
-        const next = prev + (target - prev) * 0.08;
-        return target - next < 0.05 ? target : next;
-      });
+      const target = targetRef.current;
+      const prev = displayRef.current;
+      const next = prev + (target - prev) * 0.08;
+      const settled = target - next < 0.05;
+      displayRef.current = settled ? target : next;
+
+      const now = performance.now();
+      if (settled || now - lastUiUpdate > 90) {
+        lastUiUpdate = now;
+        setDisplay(Math.round(displayRef.current));
+      }
+
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
@@ -57,40 +68,41 @@ const Loading = ({ percent }: { percent: number }) => {
   useEffect(() => {
     if (percent >= 100 && !completedRef.current) {
       completedRef.current = true;
-      const t = setTimeout(() => setExiting(true), 500);
+      document.body.classList.add("site-revealing");
+      const t = setTimeout(() => setExiting(true), 120);
       return () => clearTimeout(t);
     }
   }, [percent]);
 
   useEffect(() => {
     if (!exiting) return;
-    document.body.classList.add("site-revealing");
-    let revealTimer: ReturnType<typeof setTimeout>;
-    let doneTimer: ReturnType<typeof setTimeout>;
-    let cancelled = false;
 
-    const finish = () => {
+    let cancelled = false;
+    let textTimer: ReturnType<typeof setTimeout>;
+    let revealTimer: ReturnType<typeof setTimeout>;
+
+    window.dispatchEvent(new CustomEvent("site-reveal"));
+    revealSite();
+
+    requestAnimationFrame(() => {
       if (cancelled) return;
       setIsLoading(false);
+    });
+
+    textTimer = setTimeout(() => {
+      if (cancelled) return;
+      runLandingTextFX();
+    }, 120);
+
+    revealTimer = setTimeout(() => {
+      if (cancelled) return;
       document.body.classList.remove("site-revealing");
-    };
-
-    doneTimer = setTimeout(finish, 900);
-
-    import("./utils/initialFX")
-      .then((module) => {
-        if (cancelled) return;
-        revealTimer = setTimeout(() => module.initialFX?.(), 200);
-      })
-      .catch((err) => {
-        console.error("[Loading] initialFX import failed:", err);
-        document.querySelector("main")?.classList.add("main-active");
-      });
+    }, 650);
 
     return () => {
       cancelled = true;
+      clearTimeout(textTimer);
       clearTimeout(revealTimer);
-      clearTimeout(doneTimer);
       document.body.classList.remove("site-revealing");
     };
   }, [exiting, setIsLoading]);
@@ -198,7 +210,7 @@ export const setProgress = (
     const step = Math.max(1, Math.ceil(gap * (displayed < 50 ? 0.25 : 0.2)));
     displayed = Math.min(target, displayed + step);
     setLoading(displayed);
-  }, 40);
+  }, 100);
 
   function setMilestone(value: number) {
     target = Math.max(target, Math.min(100, value));

@@ -70,6 +70,7 @@ export function useMusicAnalysis(
   const [metrics, setMetrics] = useState<AudioMetrics>(IDLE_METRICS);
   const stateRef = useRef(createAnalysisState());
   const rafRef = useRef(0);
+  const loopActiveRef = useRef(false);
   const dataRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const startedAtRef = useRef(0);
   const lastPublishRef = useRef(0);
@@ -80,15 +81,16 @@ export function useMusicAnalysis(
   const publishMetrics = useCallback((next: AudioMetrics, force = false) => {
     const prev = metricsRef.current;
     metricsRef.current = next;
-    onFrameRef.current?.(next);
 
     const now = performance.now();
-    if (
+    const shouldPublish =
       force ||
       now - lastPublishRef.current >= METRICS_UPDATE_MS ||
-      metricsChanged(prev, next)
-    ) {
+      metricsChanged(prev, next);
+
+    if (shouldPublish) {
       lastPublishRef.current = now;
+      onFrameRef.current?.(next);
       setMetrics((state) => (metricsChanged(state, next) ? next : state));
     }
   }, []);
@@ -108,7 +110,15 @@ export function useMusicAnalysis(
               bass: metricsRef.current.bass * 0.92,
             }
           : IDLE_METRICS;
-      publishMetrics(decayed);
+
+      publishMetrics(decayed, decayed.energy < 0.01);
+
+      if (decayed.energy < 0.01) {
+        loopActiveRef.current = false;
+        rafRef.current = 0;
+        return;
+      }
+
       rafRef.current = requestAnimationFrame(tick);
       return;
     }
@@ -135,10 +145,19 @@ export function useMusicAnalysis(
     rafRef.current = requestAnimationFrame(tick);
   }, [getAnalyser, getTrack, isPlaying, playbackMode, publishMetrics]);
 
-  useEffect(() => {
+  const ensureLoop = useCallback(() => {
+    if (loopActiveRef.current) return;
+    loopActiveRef.current = true;
     rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
   }, [tick]);
+
+  useEffect(() => {
+    ensureLoop();
+    return () => {
+      loopActiveRef.current = false;
+      cancelAnimationFrame(rafRef.current);
+    };
+  }, [ensureLoop]);
 
   const reset = useCallback(() => {
     stateRef.current = createAnalysisState();
@@ -148,5 +167,5 @@ export function useMusicAnalysis(
     setMetrics(IDLE_METRICS);
   }, []);
 
-  return { metrics, metricsRef, reset };
+  return { metrics, metricsRef, reset, ensureLoop };
 }

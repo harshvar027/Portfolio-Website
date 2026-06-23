@@ -50,7 +50,7 @@
 
 .soundscape-kicker {
   display: block;
-  color: var(--accentColor);
+  color: #00d4ff;
   font-size: clamp(13px, 1.1vw, 18px);
   letter-spacing: 6px;
   text-transform: uppercase;
@@ -66,7 +66,7 @@
 }
 
 .soundscape-title span {
-  color: var(--accentColor);
+  color: #fcc201;
 }
 
 .soundscape-lead {
@@ -80,12 +80,13 @@
 
 .soundscape-stage {
   position: relative;
-  min-height: 520px;
+  min-height: clamp(480px, 56vh, 580px);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: stretch;
   perspective: 1400px;
-  padding: 60px 20px;
+  padding: 0;
   border-radius: 28px;
   border: 1px solid rgba(194, 164, 255, 0.18);
   background: radial-gradient(
@@ -350,150 +351,35 @@
   z-index: 1;
 }
 
-/* Main interactive card — heavy 3D box */
-.soundscape-card {
-  position: relative;
+/* Full-stage lyrics surface */
+.soundscape-lyrics-wrap {
+  position: absolute;
+  inset: 0;
   z-index: 3;
-  width: min(560px, 92vw);
-  perspective: 1400px;
+  border-radius: inherit;
+  overflow: hidden;
 }
 
-.soundscape-box-shadow {
-  inset: 10% 2%;
-  opacity: 0.45;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(40, 12, 80, 0.55) 0%,
-    rgba(0, 0, 0, 0.35) 45%,
-    transparent 72%
-  );
-  filter: blur(8px);
-}
-
-.soundscape-card-inner {
+.soundscape-lyrics-inner {
   position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
   transform-style: preserve-3d;
   transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
 }
 
-.soundscape-box {
-  --box-depth: 34px;
-  --box-radius: 22px;
-  position: relative;
-  transform-style: preserve-3d;
-  transform: rotateX(4deg) rotateY(-2deg);
-}
-
-.soundscape-box-face {
-  position: absolute;
-  backface-visibility: hidden;
-  pointer-events: none;
-}
-
-.soundscape-box-front {
-  position: relative;
-  pointer-events: auto;
-  padding: 40px 44px;
-  border-radius: var(--box-radius);
-  border: 1px solid rgba(194, 164, 255, 0.32);
-  background: linear-gradient(
-    148deg,
-    rgba(255, 255, 255, 0.1) 0%,
-    rgba(255, 255, 255, 0.03) 42%,
-    rgba(12, 8, 24, 0.15) 100%
-  );
-  backdrop-filter: blur(20px);
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
-    0 1px 0 rgba(255, 255, 255, 0.12) inset,
-    0 -2px 12px rgba(0, 0, 0, 0.25) inset;
-  transform: translateZ(calc(var(--box-depth) * 0.5));
-  z-index: 2;
-}
-
-.soundscape-box-front .tilt-card-glare {
+.soundscape-lyrics-inner .tilt-card-glare {
   border-radius: inherit;
+  z-index: 4;
 }
 
-/* Top slab — catches light */
-.soundscape-box-top {
-  top: 0;
-  left: calc(var(--box-radius) * 0.65);
-  right: calc(var(--box-radius) * 0.65);
-  height: var(--box-depth);
-  border-radius: 6px 6px 0 0;
-  background: linear-gradient(
-    180deg,
-    rgba(180, 140, 255, 0.22) 0%,
-    rgba(80, 40, 140, 0.55) 55%,
-    rgba(30, 14, 58, 0.85) 100%
-  );
-  transform-origin: top center;
-  transform: rotateX(90deg);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
-}
-
-/* Bottom slab — heavy shadow edge */
-.soundscape-box-bottom {
-  bottom: 0;
-  left: calc(var(--box-radius) * 0.65);
-  right: calc(var(--box-radius) * 0.65);
-  height: var(--box-depth);
-  border-radius: 0 0 6px 6px;
-  background: linear-gradient(
-    180deg,
-    rgba(20, 10, 38, 0.95) 0%,
-    rgba(8, 4, 16, 1) 100%
-  );
-  transform-origin: bottom center;
-  transform: rotateX(-90deg);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-}
-
-/* Left edge */
-.soundscape-box-left {
-  top: calc(var(--box-radius) * 0.65);
-  bottom: calc(var(--box-radius) * 0.65);
-  left: 0;
-  width: var(--box-depth);
-  background: linear-gradient(
-    90deg,
-    rgba(50, 24, 90, 0.95) 0%,
-    rgba(28, 14, 52, 0.88) 100%
-  );
-  transform-origin: left center;
-  transform: rotateY(-90deg);
-  box-shadow: inset -2px 0 8px rgba(0, 0, 0, 0.35);
-}
-
-/* Right edge — darkest side */
-.soundscape-box-right {
-  top: calc(var(--box-radius) * 0.65);
-  bottom: calc(var(--box-radius) * 0.65);
-  right: 0;
-  width: var(--box-depth);
-  background: linear-gradient(
-    270deg,
-    rgba(12, 6, 24, 1) 0%,
-    rgba(22, 10, 42, 0.92) 100%
-  );
-  transform-origin: right center;
-  transform: rotateY(90deg);
-  box-shadow: inset 2px 0 10px rgba(0, 0, 0, 0.45);
-}
-
-/* Back panel */
-.soundscape-box-back {
-  inset: 0;
-  border-radius: var(--box-radius);
-  background: linear-gradient(
-    160deg,
-    rgba(14, 8, 28, 1) 0%,
-    rgba(6, 3, 14, 1) 100%
-  );
-  transform: rotateY(180deg) translateZ(calc(var(--box-depth) * 0.5));
-  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8);
+.soundscape-lyrics-inner .lyrics-stage {
+  flex: 1;
+  min-height: 100%;
+  height: 100%;
+  border-radius: inherit;
 }
 
 .soundscape-card-body {
@@ -765,8 +651,7 @@
   }
 
   .soundscape-stage {
-    min-height: 480px;
-    padding: 40px 16px;
+    min-height: clamp(440px, 52vh, 520px);
   }
 
   .soundscape-vinyl {
@@ -780,13 +665,6 @@
     font-size: 26px;
   }
 
-  .soundscape-box-front {
-    padding: 32px 24px;
-  }
-
-  .soundscape-box {
-    --box-depth: 26px;
-  }
 }
 
 @media only screen and (max-width: 480px) {

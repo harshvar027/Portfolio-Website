@@ -1,0 +1,248 @@
+.music-search-bar-wrap {
+  position: relative;
+  max-width: 520px;
+  margin-top: 20px;
+  z-index: 4;
+}
+
+.music-search-connect {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(30, 215, 96, 0.2);
+  background: rgba(18, 18, 18, 0.85);
+  backdrop-filter: blur(8px);
+}
+
+.music-search-connect.connected {
+  border-color: rgba(30, 215, 96, 0.35);
+  background: rgba(30, 215, 96, 0.06);
+}
+
+.music-search-connect-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  text-align: left;
+}
+
+.music-search-connect-copy strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.music-search-connect-copy span {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.4;
+}
+
+.music-search-connect-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 9px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: #1ed760;
+  color: #000;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.music-search-connect-btn:hover:not(:disabled) {
+  transform: scale(1.03);
+  background: #1fdf64;
+}
+
+.music-search-connect-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.music-search-connect-ready {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #1ed760;
+  background: rgba(30, 215, 96, 0.12);
+  border: 1px solid rgba(30, 215, 96, 0.3);
+}
+
+.music-search-bar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+.music-search-bar input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: rgba(18, 18, 18, 0.9);
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.music-search-bar input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.music-search-bar input:focus {
+  border-color: rgba(30, 215, 96, 0.5);
+  box-shadow: 0 0 0 3px rgba(30, 215, 96, 0.12);
+}
+
+.music-search-bar-btn {
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 20px;
+  background: #1ed760;
+  color: #000;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.music-search-bar-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.music-search-bar-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.music-search-bar-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: rgba(180, 195, 215, 0.55);
+}
+
+.music-search-bar-error {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: #ff6b8a;
+}
+
+.music-search-bar-results {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 8px;
+  list-style: none;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(18, 18, 18, 0.98);
+  backdrop-filter: blur(16px);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  max-height: 280px;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.music-search-bar-track {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.music-search-bar-track:hover:not(:disabled) {
+  background: rgba(30, 215, 96, 0.08);
+}
+
+.music-search-bar-track:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.music-search-bar-track img,
+.music-search-bar-fallback {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.music-search-bar-fallback {
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 18px;
+}
+
+.music-search-bar-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.music-search-bar-meta strong {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.music-search-bar-meta small {
+  font-size: 11px;
+  color: rgba(190, 210, 235, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.music-search-bar-action {
+  flex-shrink: 0;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #1ed760;
+}

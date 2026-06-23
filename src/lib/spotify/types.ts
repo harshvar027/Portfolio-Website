@@ -6,6 +6,7 @@ export type SpotifyTrack = {
   albumArt: string | null;
   uri: string;
   previewUrl: string | null;
+  durationMs: number;
   tempo?: number;
   energy?: number;
   valence?: number;
@@ -25,6 +26,7 @@ export type SpotifySearchResponse = {
       name: string;
       uri: string;
       preview_url: string | null;
+      duration_ms: number;
       artists: Array<{ name: string }>;
       album: {
         name: string;

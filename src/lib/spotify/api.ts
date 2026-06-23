@@ -15,6 +15,7 @@ export function mapTrack(
     albumArt: item.album.images[0]?.url ?? null,
     uri: item.uri,
     previewUrl: item.preview_url,
+    durationMs: item.duration_ms,
   };
 }
 

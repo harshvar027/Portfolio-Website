@@ -1,10 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { useTilt } from "../hooks/useTilt";
 import { useMusicReactive } from "../context/MusicReactiveContext";
-import MusicPicker from "./Music/MusicPicker";
+import LyricsStage from "./Music/LyricsStage";
+import MusicSearchBar from "./Music/MusicSearchBar";
 import "./styles/Soundscape.css";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
@@ -13,16 +14,32 @@ const Soundscape = () => {
   const stageRef = useRef<HTMLDivElement>(null);
   const vinylRef = useRef<HTMLDivElement>(null);
   const portalRef = useRef<HTMLDivElement>(null);
+  const [parallax, setParallax] = useState({ x: 0, y: 0 });
 
   const { isPlaying, activeTrack, metrics } = useMusicReactive();
 
-  const { ref: cardRef, innerRef, glareRef, shadowRef, onEnter, onMove, onLeave } =
+  const { ref: lyricsWrapRef, innerRef, glareRef, onEnter, onMove, onLeave } =
     useTilt({
-      maxTilt: 7,
-      scale: 1.008,
-      depth: 14,
-      tiltMultiplier: 1.15,
+      maxTilt: 4,
+      scale: 1.004,
+      depth: 8,
+      tiltMultiplier: 0.85,
     });
+
+  const handleStageMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    onMove(e);
+    const el = lyricsWrapRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width - 0.5;
+    const py = (e.clientY - rect.top) / rect.height - 0.5;
+    setParallax({ x: px, y: py });
+  };
+
+  const handleStageLeave = () => {
+    onLeave();
+    setParallax({ x: 0, y: 0 });
+  };
 
   useGSAP(
     () => {
@@ -75,9 +92,10 @@ const Soundscape = () => {
           Inside the <span>Music</span>
         </h2>
         <p className="soundscape-lead">
-          Search any Spotify song — connect, pick a track, and watch the
-          portfolio react to every beat.
+          Search any Spotify song — live synced lyrics pulse inside the NYC
+          skyline box as the portfolio reacts to every beat.
         </p>
+        <MusicSearchBar />
       </div>
 
       <div className="soundscape-stage" ref={stageRef}>
@@ -106,25 +124,15 @@ const Soundscape = () => {
         </div>
 
         <div
-          ref={cardRef}
-          className="soundscape-card"
+          ref={lyricsWrapRef}
+          className="soundscape-lyrics-wrap"
           onMouseEnter={onEnter}
-          onMouseMove={onMove}
-          onMouseLeave={onLeave}
+          onMouseMove={handleStageMove}
+          onMouseLeave={handleStageLeave}
         >
-          <div ref={shadowRef} className="tilt-card-shadow soundscape-box-shadow" aria-hidden="true" />
-          <div ref={innerRef} className="soundscape-card-inner">
-            <div className="soundscape-box">
-              <div className="soundscape-box-face soundscape-box-top" aria-hidden="true" />
-              <div className="soundscape-box-face soundscape-box-bottom" aria-hidden="true" />
-              <div className="soundscape-box-face soundscape-box-left" aria-hidden="true" />
-              <div className="soundscape-box-face soundscape-box-right" aria-hidden="true" />
-              <div className="soundscape-box-face soundscape-box-back" aria-hidden="true" />
-              <div className="soundscape-box-face soundscape-box-front">
-                <div ref={glareRef} className="tilt-card-glare" aria-hidden="true" />
-                <MusicPicker layout="card" />
-              </div>
-            </div>
+          <div ref={innerRef} className="soundscape-lyrics-inner">
+            <div ref={glareRef} className="tilt-card-glare" aria-hidden="true" />
+            <LyricsStage parallaxX={parallax.x} parallaxY={parallax.y} />
           </div>
         </div>
       </div>

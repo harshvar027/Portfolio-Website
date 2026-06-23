@@ -8,6 +8,7 @@ export type PreviewTrack = {
   albumArt: string | null;
   uri: string;
   previewUrl: string | null;
+  durationMs: number;
 };
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
@@ -82,6 +83,7 @@ function mapTrack(
     albumArt: item.album.images[0]?.url ?? null,
     uri: item.uri,
     previewUrl: item.preview_url,
+    durationMs: item.duration_ms,
   };
 }
 

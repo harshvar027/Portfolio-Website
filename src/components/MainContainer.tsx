@@ -14,19 +14,22 @@ import WhatIDo from "./WhatIDo";
 import MusicNotch from "./Music/MusicNotch";
 import MusicInviteModal from "./MusicInvite/MusicInviteModal";
 import Soundscape from "./Soundscape";
+import SoundscapeLyricsNote from "./Music/SoundscapeLyricsNote";
 import SiteGradient from "./SiteGradient";
 import Work from "./Work";
 import setSplitText from "./utils/splitText";
-import { enableScroll, refreshScrollSmoother } from "./utils/scrollSmoother";
+import { prepareScrollSmoother, refreshScrollSmoother } from "./utils/scrollSmoother";
 import { initSiteAnimations } from "./utils/siteAnimations";
-import { useMusicReactive } from "../context/MusicReactiveContext";
 
 const MainContainer = ({ children }: PropsWithChildren) => {
   const [isDesktopView, setIsDesktopView] = useState<boolean>(
     window.innerWidth > 1024
   );
   const [siteReady, setSiteReady] = useState(false);
-  const { openInviteAfterLoad } = useMusicReactive();
+
+  useEffect(() => {
+    prepareScrollSmoother();
+  }, []);
 
   useEffect(() => {
     let resizeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -36,7 +39,6 @@ const MainContainer = ({ children }: PropsWithChildren) => {
       if (resizeTimer) clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => refreshScrollSmoother(), 150);
     };
-    setSplitText();
     window.addEventListener("resize", resizeHandler);
 
     return () => {
@@ -46,24 +48,31 @@ const MainContainer = ({ children }: PropsWithChildren) => {
   }, []);
 
   useEffect(() => {
-    const check = () => {
-      if (document.querySelector("main.main-active")) {
-        setSiteReady(true);
-        return;
-      }
-      requestAnimationFrame(check);
-    };
-    check();
+    if (document.querySelector("main.main-active")) {
+      setSiteReady(true);
+      return;
+    }
+
+    const onReveal = () => setSiteReady(true);
+    window.addEventListener("site-reveal", onReveal);
+    return () => window.removeEventListener("site-reveal", onReveal);
   }, []);
 
   useEffect(() => {
     if (!siteReady) return;
-    enableScroll();
-    openInviteAfterLoad();
-    // Opt-in premium micro-interactions (magnetic / squish / scramble).
-    const disposeSiteAnimations = initSiteAnimations();
-    return () => disposeSiteAnimations();
-  }, [siteReady, openInviteAfterLoad]);
+
+    let disposeAnimations: (() => void) | null = null;
+    const splitTimer = setTimeout(() => setSplitText(), 200);
+    const animTimer = setTimeout(() => {
+      disposeAnimations = initSiteAnimations();
+    }, 350);
+
+    return () => {
+      clearTimeout(splitTimer);
+      clearTimeout(animTimer);
+      disposeAnimations?.();
+    };
+  }, [siteReady]);
 
   return (
     <div className="container-main">
@@ -88,6 +97,7 @@ const MainContainer = ({ children }: PropsWithChildren) => {
               <TechStackSpacer />
               <Work />
               <Soundscape />
+              <SoundscapeLyricsNote />
               <ParticleMorphSpacer />
               <NameReveal />
             </div>

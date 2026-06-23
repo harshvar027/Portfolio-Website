@@ -26,7 +26,7 @@ function getScrollConfig() {
   return { smooth: 0.85, effects: false };
 }
 
-export function initScrollSmoother() {
+export function initScrollSmoother(startPaused = false) {
   if (smoother) return smoother;
 
   const wrapper = document.querySelector("#smooth-wrapper");
@@ -46,13 +46,18 @@ export function initScrollSmoother() {
       normalizeScroll: true,
     });
     smoother.scrollTop(0);
-    smoother.paused(false);
+    smoother.paused(startPaused);
     return smoother;
   } catch (err) {
     console.error("[ScrollSmoother] init failed:", err);
     smoother = null;
     return null;
   }
+}
+
+/** Warm up ScrollSmoother during the loading screen so reveal is instant. */
+export function prepareScrollSmoother() {
+  return initScrollSmoother(true);
 }
 
 /** Enable smooth scroll once after the loading screen finishes. */
@@ -77,7 +82,13 @@ export function enableScroll() {
       finish(instance);
       return;
     }
-    if (tries < 60) requestAnimationFrame(() => attempt(tries + 1));
+    if (tries < 60) {
+      requestAnimationFrame(() => attempt(tries + 1));
+      return;
+    }
+    document.body.style.overflow = "auto";
+    const wrapper = document.querySelector("#smooth-wrapper") as HTMLElement | null;
+    if (wrapper) wrapper.style.overflow = "auto";
   };
 
   attempt();

@@ -3,26 +3,18 @@ import { useMusicReactive } from "../../context/MusicReactiveContext";
 import type { SpotifyTrack } from "../../lib/spotify/types";
 import "./MusicPicker.css";
 
-type Step = "invite" | "search" | "playing" | "declined";
+type Step = "invite" | "search";
 
 type MusicPickerProps = {
-  layout: "modal" | "card";
   showInviteOnOpen?: boolean;
   onClose?: () => void;
 };
 
 const MusicPicker = ({
-  layout,
   showInviteOnOpen = false,
   onClose,
 }: MusicPickerProps) => {
   const {
-    isPlaying,
-    activeTrack,
-    playbackMode,
-    metrics,
-    mood,
-    volume,
     inviteChoice,
     spotifyConfigured,
     spotifyConnected,
@@ -33,9 +25,6 @@ const MusicPicker = ({
     searchPreviewTracks,
     playPreviewTrack,
     playTrack,
-    stop,
-    setVolume,
-    hapticsSupported,
   } = useMusicReactive();
 
   const [step, setStep] = useState<Step>("search");
@@ -46,26 +35,12 @@ const MusicPicker = ({
   const [loadingTrackId, setLoadingTrackId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isPlaying && activeTrack) {
-      setStep("playing");
-      return;
-    }
-    if (inviteChoice === "declined" && layout === "card") {
-      setStep("declined");
-      return;
-    }
-    if (showInviteOnOpen && inviteChoice === "pending" && layout === "modal") {
+    if (showInviteOnOpen && inviteChoice === "pending") {
       setStep("invite");
       return;
     }
     setStep("search");
-  }, [
-    isPlaying,
-    activeTrack,
-    inviteChoice,
-    layout,
-    showInviteOnOpen,
-  ]);
+  }, [showInviteOnOpen, inviteChoice]);
 
   const handleYes = () => {
     acceptInvite();
@@ -103,8 +78,7 @@ const MusicPicker = ({
       } else {
         await playPreviewTrack(track);
       }
-      setStep("playing");
-      if (layout === "modal") onClose?.();
+      onClose?.();
     } catch (err) {
       setLocalError(
         err instanceof Error ? err.message : "Could not play this track."
@@ -112,13 +86,6 @@ const MusicPicker = ({
     } finally {
       setLoadingTrackId(null);
     }
-  };
-
-  const handleStop = async () => {
-    await stop();
-    setResults([]);
-    setQuery("");
-    setStep(inviteChoice === "declined" ? "declined" : "search");
   };
 
   const errorMessage = localError || authError;
@@ -130,7 +97,7 @@ const MusicPicker = ({
         <h2 className="music-picker-title">Want music while you explore?</h2>
         <p className="music-picker-copy">
           Pick any Spotify song and the portfolio will pulse, glow, and react
-          to the beat as you scroll.
+          to the beat as you scroll — with live synced lyrics in the skyline box.
         </p>
         <div className="music-picker-actions">
           <button
@@ -155,122 +122,13 @@ const MusicPicker = ({
     );
   }
 
-  if (step === "declined") {
-    return (
-      <div className="music-picker">
-        <span className="music-picker-badge">Soundscape</span>
-        <h2 className="music-picker-title">No music for now</h2>
-        <p className="music-picker-copy">
-          Search any song below when you&apos;re ready — the whole site will
-          sync to your pick.
-        </p>
-        <div className="music-picker-actions">
-          <button
-            type="button"
-            className="music-picker-btn music-picker-btn-primary"
-            onClick={() => {
-              acceptInvite();
-              setStep("search");
-            }}
-          >
-            Pick a song
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (step === "playing" && activeTrack) {
-    return (
-      <div className="music-picker">
-        <span className="music-picker-badge">
-          Now playing · {mood.label}
-          {playbackMode === "preview" ? " · preview" : ""}
-        </span>
-
-        <div className="music-picker-playing-head">
-          {activeTrack.albumArt && (
-            <img
-              className="music-picker-playing-art"
-              src={activeTrack.albumArt}
-              alt=""
-            />
-          )}
-          <div className="music-picker-playing-meta">
-            <h3>{activeTrack.name}</h3>
-            <p>{activeTrack.artists}</p>
-          </div>
-        </div>
-
-        <div className="music-picker-metrics" aria-hidden="true">
-          <MetricBar label="Bass" value={metrics.bass} />
-          <MetricBar label="Mid" value={metrics.mid} />
-          <MetricBar label="Treble" value={metrics.treble} />
-          <MetricBar label="Energy" value={metrics.energy} />
-        </div>
-
-        <div className="music-picker-stats">
-          <span>{Math.round(metrics.bpm)} BPM</span>
-          <span>{Math.round(metrics.volume * 100)}% vol</span>
-          {hapticsSupported && <span>Haptics on</span>}
-          {metrics.drop && <span className="music-picker-drop">DROP</span>}
-        </div>
-
-        <div className="music-picker-visualizer" aria-hidden="true">
-          {[...Array(7)].map((_, i) => (
-            <span
-              key={i}
-              className="music-picker-bar"
-              style={{
-                animationDelay: `${i * 0.08}s`,
-                animationDuration: `${0.5 + (1 - metrics.energy) * 0.4}s`,
-              }}
-            />
-          ))}
-        </div>
-
-        <div className="music-picker-volume">
-          <label htmlFor={`music-vol-${layout}`}>Volume</label>
-          <input
-            id={`music-vol-${layout}`}
-            type="range"
-            min={0}
-            max={1}
-            step={0.05}
-            value={volume}
-            onChange={(e) => setVolume(parseFloat(e.target.value))}
-          />
-        </div>
-
-        <div className="music-picker-actions">
-          <button
-            type="button"
-            className="music-picker-btn music-picker-btn-primary"
-            onClick={() => setStep("search")}
-          >
-            Change song
-          </button>
-          <button
-            type="button"
-            className="music-picker-btn"
-            onClick={handleStop}
-          >
-            Stop
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="music-picker">
-      <span className="music-picker-badge">
-        {layout === "modal" ? "Welcome" : "Soundscape"} · 30s previews
-      </span>
+      <span className="music-picker-badge">Welcome · 30s previews</span>
       <h2 className="music-picker-title">What should we play?</h2>
       <p className="music-picker-copy">
-        Search by song or artist — no login needed. The site reacts to 30-second
-        Spotify previews as you scroll.
+        Search by song or artist — no login needed. Live lyrics sync in the
+        Soundscape section as the site reacts to the beat.
       </p>
 
       <div
@@ -288,7 +146,7 @@ const MusicPicker = ({
             onClick={() => loginSpotify()}
             disabled={!spotifyConfigured}
           >
-            Connect Premium
+            Connect Spotify
           </button>
         ) : (
           <span className="music-picker-badge">Premium ready</span>
@@ -369,34 +227,20 @@ const MusicPicker = ({
         </ul>
       )}
 
-      {layout === "modal" && (
-        <div className="music-picker-actions" style={{ marginTop: 18 }}>
-          <button
-            type="button"
-            className="music-picker-btn"
-            onClick={() => {
-              declineInvite();
-              onClose?.();
-            }}
-          >
-            Skip for now
-          </button>
-        </div>
-      )}
+      <div className="music-picker-actions" style={{ marginTop: 18 }}>
+        <button
+          type="button"
+          className="music-picker-btn"
+          onClick={() => {
+            declineInvite();
+            onClose?.();
+          }}
+        >
+          Skip for now
+        </button>
+      </div>
     </div>
   );
 };
-
-const MetricBar = ({ label, value }: { label: string; value: number }) => (
-  <div className="music-picker-metric">
-    <span>{label}</span>
-    <div className="music-picker-metric-track">
-      <div
-        className="music-picker-metric-fill"
-        style={{ transform: `scaleX(${Math.min(1, value * 1.4)})` }}
-      />
-    </div>
-  </div>
-);
 
 export default MusicPicker;

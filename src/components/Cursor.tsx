@@ -14,11 +14,6 @@ const Cursor = () => {
     const mousePos = { x: 0, y: 0 };
     const cursorPos = { x: 0, y: 0 };
 
-    const handleMouseMove = (e: MouseEvent) => {
-      mousePos.x = e.clientX;
-      mousePos.y = e.clientY;
-    };
-
     const loop = () => {
       if (!hover) {
         const delay = 6;
@@ -26,11 +21,24 @@ const Cursor = () => {
         cursorPos.y += (mousePos.y - cursorPos.y) / delay;
         cursor.style.transform = `translate3d(${cursorPos.x}px, ${cursorPos.y}px, 0)`;
       }
+
+      const dx = Math.abs(mousePos.x - cursorPos.x);
+      const dy = Math.abs(mousePos.y - cursorPos.y);
+      if (!hover && dx < 0.4 && dy < 0.4) {
+        frameId = 0;
+        return;
+      }
+
       frameId = requestAnimationFrame(loop);
     };
 
+    const handleMouseMove = (e: MouseEvent) => {
+      mousePos.x = e.clientX;
+      mousePos.y = e.clientY;
+      if (!frameId) frameId = requestAnimationFrame(loop);
+    };
+
     document.addEventListener("mousemove", handleMouseMove);
-    frameId = requestAnimationFrame(loop);
 
     const cursorTargets = document.querySelectorAll("[data-cursor]");
     const cleanups: (() => void)[] = [];
@@ -56,6 +64,7 @@ const Cursor = () => {
       const handleMouseOut = () => {
         cursor.classList.remove("cursor-disable", "cursor-icons");
         hover = false;
+        if (!frameId) frameId = requestAnimationFrame(loop);
       };
 
       element.addEventListener("mouseover", handleMouseOver);

@@ -1,0 +1,89 @@
+/* Compact notch pill */
+.notch-karaoke-word {
+  display: inline;
+  position: relative;
+}
+
+.notch-karaoke-word-fill {
+  display: inline;
+  background-image: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0.45) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.notch-karaoke-word-sung .notch-karaoke-word-fill {
+  background-image: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.notch-karaoke-word-singing .notch-karaoke-word-fill {
+  background-image: linear-gradient(
+    to right,
+    #00d4ff 0%,
+    #00d4ff calc(var(--word-progress, 0) * 100%),
+    rgba(255, 255, 255, 0.45) calc(var(--word-progress, 0) * 100%),
+    rgba(255, 255, 255, 0.45) 100%
+  );
+  filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.5));
+}
+
+.notch-karaoke-word-upcoming .notch-karaoke-word-fill {
+  color: transparent;
+  background-image: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0.45) 100%
+  );
+}
+
+/* Expanded notch panel */
+.notch-karaoke-expanded-word {
+  display: inline;
+  position: relative;
+}
+
+.notch-karaoke-expanded-word-fill {
+  display: inline;
+  background-image: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.38) 0%,
+    rgba(255, 255, 255, 0.38) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.notch-karaoke-expanded-word-sung .notch-karaoke-expanded-word-fill {
+  background-image: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.notch-karaoke-expanded-word-singing .notch-karaoke-expanded-word-fill {
+  background-image: linear-gradient(
+    to right,
+    #ffffff 0%,
+    #ffffff calc(var(--word-progress, 0) * 100%),
+    #c2a4ff calc(var(--word-progress, 0) * 100%),
+    #c2a4ff 100%
+  );
+  filter: drop-shadow(0 0 12px rgba(194, 164, 255, 0.55));
+}
+
+.notch-karaoke-expanded-word-upcoming .notch-karaoke-expanded-word-fill {
+  color: transparent;
+  background-image: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.38) 0%,
+    rgba(255, 255, 255, 0.38) 100%
+  );
+}

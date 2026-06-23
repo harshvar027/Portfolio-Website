@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
+import { smoother } from "../components/utils/scrollSmoother";
 
 export type AnchorState = {
   width: number;
@@ -6,12 +7,13 @@ export type AnchorState = {
   visible: boolean;
 };
 
-const OFFSCREEN_POLL_MS = 300;
+const VISIBILITY_MARGIN = 160;
+
+const getScrollPos = () => smoother?.scrollTop() ?? window.scrollY;
 
 /**
  * Keeps a fixed-position host element aligned with a DOM anchor (works with
- * GSAP ScrollSmoother). Position is written imperatively every frame to avoid
- * React re-renders; React state only updates when size/visibility changes.
+ * GSAP ScrollSmoother). Skips layout reads when scroll position is unchanged.
  */
 export function useAnchorSync(
   anchorId: string,
@@ -23,60 +25,72 @@ export function useAnchorSync(
     visible: false,
   });
   const last = useRef({ width: -1, height: -1, visible: false });
-  const timerRef = useRef(0);
+  const lastScroll = useRef(-1);
 
   useEffect(() => {
     let raf = 0;
     let active = true;
+    let forceNext = true;
 
-    const update = () => {
+    const sync = () => {
       if (!active) return;
+
+      const scroll = getScrollPos();
+      if (!forceNext && scroll === lastScroll.current) return;
+      forceNext = false;
+      lastScroll.current = scroll;
 
       const el = document.getElementById(anchorId);
       const host = hostRef.current;
-      if (!el || !host) {
-        timerRef.current = window.setTimeout(update, OFFSCREEN_POLL_MS);
-        return;
-      }
+      if (!el || !host) return;
 
       const r = el.getBoundingClientRect();
-      const visible = r.bottom > 0 && r.top < window.innerHeight;
+      const visible =
+        r.bottom > -VISIBILITY_MARGIN &&
+        r.top < window.innerHeight + VISIBILITY_MARGIN;
 
-      if (visible) {
-        host.style.transform = `translate3d(${r.left}px, ${r.top}px, 0)`;
-        host.style.visibility = "visible";
+      host.style.transform = `translate3d(${r.left}px, ${r.top}px, 0)`;
+      host.style.visibility = visible ? "visible" : "hidden";
 
-        const prev = last.current;
-        if (
-          Math.abs(r.width - prev.width) > 0.5 ||
-          Math.abs(r.height - prev.height) > 0.5 ||
-          visible !== prev.visible
-        ) {
-          last.current = { width: r.width, height: r.height, visible };
-          host.style.width = `${r.width}px`;
-          host.style.height = `${r.height}px`;
-          setState({ width: r.width, height: r.height, visible });
-        }
-
-        raf = requestAnimationFrame(update);
-        return;
+      const prev = last.current;
+      if (
+        Math.abs(r.width - prev.width) > 0.5 ||
+        Math.abs(r.height - prev.height) > 0.5 ||
+        visible !== prev.visible
+      ) {
+        last.current = { width: r.width, height: r.height, visible };
+        host.style.width = `${r.width}px`;
+        host.style.height = `${r.height}px`;
+        setState({ width: r.width, height: r.height, visible });
       }
-
-      host.style.visibility = "hidden";
-      if (last.current.visible) {
-        last.current = { ...last.current, visible: false };
-        setState((s) => ({ ...s, visible: false }));
-      }
-
-      timerRef.current = window.setTimeout(update, OFFSCREEN_POLL_MS);
     };
 
-    raf = requestAnimationFrame(update);
+    const loop = () => {
+      if (!active) return;
+      sync();
+      raf = requestAnimationFrame(loop);
+    };
+
+    const markDirty = () => {
+      forceNext = true;
+    };
+
+    const anchorEl = document.getElementById(anchorId);
+    const resizeObserver =
+      anchorEl && typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(markDirty)
+        : null;
+    resizeObserver?.observe(anchorEl!);
+
+    window.addEventListener("resize", markDirty, { passive: true });
+    raf = requestAnimationFrame(loop);
+    sync();
 
     return () => {
       active = false;
       cancelAnimationFrame(raf);
-      window.clearTimeout(timerRef.current);
+      window.removeEventListener("resize", markDirty);
+      resizeObserver?.disconnect();
     };
   }, [anchorId, hostRef]);
 

@@ -9,9 +9,11 @@ import {
   useState,
 } from "react";
 import { useHaptics } from "../hooks/useHaptics";
+import { useLyrics } from "../hooks/useLyrics";
 import { useMusicAnalysis } from "../hooks/useMusicAnalysis";
 import { useSpotify, consumeSpotifyReturnFlag } from "../hooks/useSpotify";
 import type { AudioMetrics } from "../lib/audioAnalysis";
+import type { LrcLine } from "../lib/lrclib/types";
 import { searchPreviewTracks } from "../lib/spotify/previewSearch";
 import { getMoodForTrack, applyMoodToDocument, type MoodTheme } from "../lib/moodEngine";
 import type { SpotifyTrack } from "../lib/spotify/types";
@@ -22,8 +24,18 @@ type MusicReactiveContextValue = {
   isPlaying: boolean;
   activeTrack: SpotifyTrack | null;
   playbackMode: "spotify" | "preview" | null;
+  playbackPositionMs: number;
+  isPaused: boolean;
   metrics: AudioMetrics;
   mood: MoodTheme;
+  lyricsLines: LrcLine[];
+  lyricsSynced: boolean;
+  lyricsInstrumental: boolean;
+  lyricsLoading: boolean;
+  lyricsError: string | null;
+  lyricsActiveIndex: number;
+  lyricsLineProgress: number;
+  currentLyricLine: string | null;
   volume: number;
   spotifyConfigured: boolean;
   spotifyConnected: boolean;
@@ -42,6 +54,7 @@ type MusicReactiveContextValue = {
   searchTracks: (query: string) => Promise<SpotifyTrack[]>;
   playPreviewTrack: (track: SpotifyTrack) => Promise<void>;
   playTrack: (track: SpotifyTrack) => Promise<void>;
+  togglePause: () => Promise<void>;
   stop: () => Promise<void>;
   setVolume: (v: number) => void;
   hapticsSupported: boolean;
@@ -88,18 +101,26 @@ export function MusicReactiveProvider({ children }: PropsWithChildren) {
 
   const handleFrameMetrics = useCallback(
     (frameMetrics: AudioMetrics) => {
+      if (!playingRef.current && frameMetrics.energy < 0.02) return;
       applyMoodToDocument(moodRef.current, frameMetrics);
       if (playingRef.current) syncWithMetrics(frameMetrics);
     },
     [syncWithMetrics]
   );
 
-  const { metrics, reset } = useMusicAnalysis(
+  const { metrics, reset, ensureLoop } = useMusicAnalysis(
     spotify.getAnalyser,
     getTrack,
     getIsPlaying,
     getPlaybackMode,
     handleFrameMetrics
+  );
+
+  const lyrics = useLyrics(
+    spotify.activeTrack,
+    spotify.playbackPositionMs,
+    playing,
+    spotify.isPaused
   );
 
   useEffect(() => {
@@ -116,7 +137,8 @@ export function MusicReactiveProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     setPlaying(spotify.isPlaying());
-  }, [spotify.activeTrack, spotify.playbackMode, spotify.isPlaying]);
+    if (spotify.isPlaying()) ensureLoop();
+  }, [spotify.activeTrack, spotify.playbackMode, spotify.isPlaying, ensureLoop]);
 
   useEffect(() => {
     if (playing) return;
@@ -186,6 +208,10 @@ export function MusicReactiveProvider({ children }: PropsWithChildren) {
     [spotify]
   );
 
+  const togglePause = useCallback(async () => {
+    await spotify.togglePause();
+  }, [spotify]);
+
   const stop = useCallback(async () => {
     await spotify.stop();
     stopHaptics();
@@ -198,8 +224,18 @@ export function MusicReactiveProvider({ children }: PropsWithChildren) {
       isPlaying: playing,
       activeTrack: spotify.activeTrack,
       playbackMode: spotify.playbackMode,
+      playbackPositionMs: spotify.playbackPositionMs,
+      isPaused: spotify.isPaused,
       metrics,
       mood,
+      lyricsLines: lyrics.lines,
+      lyricsSynced: lyrics.isSynced,
+      lyricsInstrumental: lyrics.instrumental,
+      lyricsLoading: lyrics.loading,
+      lyricsError: lyrics.error,
+      lyricsActiveIndex: lyrics.activeIndex,
+      lyricsLineProgress: lyrics.lineProgress,
+      currentLyricLine: lyrics.currentLine,
       volume: spotify.volume,
       spotifyConfigured: spotify.configured,
       spotifyConnected: spotify.connected,
@@ -218,6 +254,7 @@ export function MusicReactiveProvider({ children }: PropsWithChildren) {
       searchTracks: spotify.search,
       playPreviewTrack,
       playTrack,
+      togglePause,
       stop,
       setVolume: spotify.setVolume,
       hapticsSupported,
@@ -227,6 +264,7 @@ export function MusicReactiveProvider({ children }: PropsWithChildren) {
       spotify,
       metrics,
       mood,
+      lyrics,
       inviteChoice,
       showInvite,
       acceptInvite,
@@ -237,6 +275,7 @@ export function MusicReactiveProvider({ children }: PropsWithChildren) {
       openInviteAfterLoad,
       playPreviewTrack,
       playTrack,
+      togglePause,
       stop,
       hapticsSupported,
     ]

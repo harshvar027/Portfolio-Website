@@ -9,17 +9,34 @@ declare global {
       connect(): Promise<boolean>;
       disconnect(): void;
       addListener(
-        event: "ready" | "not_ready" | "player_state_changed" | "initialization_error" | "authentication_error" | "account_error" | "playback_error",
+        event:
+          | "ready"
+          | "not_ready"
+          | "player_state_changed"
+          | "initialization_error"
+          | "authentication_error"
+          | "account_error"
+          | "playback_error"
+          | "autoplay_failed",
         callback: (data: unknown) => void
       ): void;
       removeListener(
-        event: "ready" | "not_ready" | "player_state_changed" | "initialization_error" | "authentication_error" | "account_error" | "playback_error",
+        event:
+          | "ready"
+          | "not_ready"
+          | "player_state_changed"
+          | "initialization_error"
+          | "authentication_error"
+          | "account_error"
+          | "playback_error"
+          | "autoplay_failed",
         callback?: (data: unknown) => void
       ): void;
       getCurrentState(): Promise<PlaybackState | null>;
       setVolume(volume: number): Promise<void>;
       pause(): Promise<void>;
       resume(): Promise<void>;
+      activateElement(): Promise<void>;
     }
 
     interface PlaybackState {

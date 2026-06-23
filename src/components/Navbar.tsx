@@ -69,20 +69,27 @@ const Navbar = () => {
           </a>
           <button
             type="button"
-            className="navbar-music-btn"
+            className={`navbar-music-btn${isPlaying ? " navbar-music-btn-playing" : ""}`}
             onClick={openMusicSearch}
             data-cursor="disable"
             data-magnetic="0.25"
             data-squish
-            title={isPlaying ? "Change song" : "Pick a song"}
+            title={
+              isPlaying && activeTrack
+                ? `Now playing: ${activeTrack.name} — tap to change`
+                : "Pick a song"
+            }
+            aria-label={
+              isPlaying && activeTrack
+                ? `Now playing ${activeTrack.name}. Change song`
+                : "Pick a song"
+            }
           >
             <span className="navbar-music-icon" aria-hidden="true">
               ♪
             </span>
             <span className="navbar-music-label">
-              {isPlaying && activeTrack
-                ? activeTrack.name
-                : "Pick song"}
+              {isPlaying ? "Now playing" : "Pick song"}
             </span>
           </button>
         </div>

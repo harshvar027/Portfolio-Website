@@ -33,7 +33,50 @@
 .navbar-left {
   display: flex;
   align-items: center;
-  gap: 28px;
+  gap: 20px;
+  min-width: 0;
+  flex: 1;
+  max-width: calc(100% - 200px);
+}
+
+.navbar-music-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 140px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(30, 215, 96, 0.25);
+  background: rgba(30, 215, 96, 0.08);
+  color: #eae5ec;
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    border-color 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    max-width 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.navbar-music-btn-playing {
+  max-width: 118px;
+  border-color: rgba(30, 215, 96, 0.4);
+  background: rgba(30, 215, 96, 0.12);
+}
+
+.navbar-music-btn:hover {
+  border-color: rgba(30, 215, 96, 0.5);
+  background: rgba(30, 215, 96, 0.16);
+  transform: translateY(-1px);
+}
+
+.navbar-music-icon {
+  color: #1ed760;
+  font-size: 14px;
+  flex-shrink: 0;
 }
 .navbar-connect {
   position: relative;
@@ -57,41 +100,12 @@
   display: block;
 }
 
-.navbar-music-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  max-width: 160px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(194, 164, 255, 0.28);
-  background: rgba(194, 164, 255, 0.08);
-  color: #eae5ec;
-  font: inherit;
-  font-size: 12px;
-  letter-spacing: 0.3px;
-  cursor: pointer;
-  transition:
-    border-color 0.45s cubic-bezier(0.16, 1, 0.3, 1),
-    background 0.45s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.navbar-music-btn:hover {
-  border-color: rgba(194, 164, 255, 0.45);
-  background: rgba(194, 164, 255, 0.14);
-  transform: translateY(-1px);
-}
-
-.navbar-music-icon {
-  color: var(--accentColor);
-  font-size: 14px;
-}
 
 .navbar-music-label {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
 
 @media only screen and (max-width: 499px) {
@@ -110,12 +124,16 @@
     width: 32px;
   }
   .navbar-left {
-    gap: 12px;
+    gap: 10px;
+    max-width: calc(100% - 160px);
   }
   .navbar-music-btn {
-    max-width: 110px;
+    max-width: 100px;
     padding: 7px 10px;
     font-size: 11px;
+  }
+  .navbar-music-btn-playing {
+    max-width: 96px;
   }
 }
 @media only screen and (min-width: 500px) {

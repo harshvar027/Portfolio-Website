@@ -1,24 +1,49 @@
 import { SplitText } from "gsap/SplitText";
 import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { scheduleScrollLayoutRefresh } from "./GsapScroll";
 import { enableScroll } from "./scrollSmoother";
 
-export function initialFX() {
-  document.getElementsByTagName("main")[0].classList.add("main-active");
+gsap.registerPlugin(ScrollTrigger, SplitText);
+
+/** Fast path — unlock scroll and show the page immediately after loading. */
+export function revealSite() {
+  document.body.classList.add("site-revealed");
+
+  const main = document.querySelector("main.main-body");
+  main?.classList.add("main-active");
 
   if (window.innerWidth > 1024) {
     gsap.set(".about-section", { autoAlpha: 0 });
     gsap.set(".about-me", { y: "-50%" });
   }
 
-  enableScroll();
-  gsap.to("body", {
-    backgroundColor: "#0b080c",
-    duration: 0.5,
-    delay: 1,
+  gsap.set([".header", ".icons-section", ".nav-fade"], {
+    opacity: 1,
+    pointerEvents: "auto",
+  });
+  gsap.set(".landing-intro h1, .landing-intro h2, .landing-info h3", {
+    opacity: 1,
   });
 
-  var landingText = new SplitText(
+  const wrapper = document.getElementById("smooth-wrapper");
+  wrapper?.style.removeProperty("pointer-events");
+  document.body.classList.remove("music-invite-open");
+
+  enableScroll();
+
+  gsap.to("body", {
+    backgroundColor: "#0b080c",
+    duration: 0.45,
+    delay: 0.1,
+  });
+}
+
+/** Heavy text splitting — deferred so the main thread stays responsive. */
+export function runLandingTextFX() {
+  const TextProps = { type: "chars,lines", linesClass: "split-h2" };
+
+  const landingText = new SplitText(
     [".landing-info h3", ".landing-intro h2", ".landing-intro h1"],
     {
       type: "chars,lines",
@@ -27,73 +52,67 @@ export function initialFX() {
   );
   gsap.fromTo(
     landingText.chars,
-    { opacity: 0, y: 80 },
+    { opacity: 0, y: 50 },
     {
       opacity: 1,
-      duration: 1.2,
-      ease: "power3.inOut",
+      duration: 0.75,
+      ease: "power3.out",
       y: 0,
-      stagger: 0.025,
-      delay: 0.3,
+      stagger: 0.018,
+      delay: 0.05,
     }
   );
 
-  let TextProps = { type: "chars,lines", linesClass: "split-h2" };
-
-  var landingText2 = new SplitText(".landing-h2-info", TextProps);
+  const landingText2 = new SplitText(".landing-h2-info", TextProps);
   gsap.fromTo(
     landingText2.chars,
-    { opacity: 0, y: 80 },
+    { opacity: 0, y: 50 },
     {
       opacity: 1,
-      duration: 1.2,
-      ease: "power3.inOut",
+      duration: 0.75,
+      ease: "power3.out",
       y: 0,
-      stagger: 0.025,
-      delay: 0.3,
+      stagger: 0.018,
+      delay: 0.05,
     }
   );
 
   gsap.fromTo(
     ".landing-info-h2",
-    { opacity: 0, y: 30 },
+    { opacity: 0, y: 20 },
     {
       opacity: 1,
-      duration: 1.2,
-      ease: "power1.inOut",
+      duration: 0.7,
+      ease: "power2.out",
       y: 0,
-      delay: 0.8,
-    }
-  );
-  gsap.fromTo(
-    [".header", ".icons-section", ".nav-fade"],
-    { opacity: 0 },
-    {
-      opacity: 1,
-      duration: 1.2,
-      ease: "power1.inOut",
-      delay: 0.1,
+      delay: 0.2,
     }
   );
 
-  var landingText3 = new SplitText(".landing-h2-info-1", TextProps);
-  var landingText4 = new SplitText(".landing-h2-1", TextProps);
-  var landingText5 = new SplitText(".landing-h2-2", TextProps);
+  const landingText3 = new SplitText(".landing-h2-info-1", TextProps);
+  const landingText4 = new SplitText(".landing-h2-1", TextProps);
+  const landingText5 = new SplitText(".landing-h2-2", TextProps);
 
   gsap.set([".landing-h2-2", ".landing-h2-info-1"], { visibility: "visible" });
   gsap.set(landingText3.chars, { opacity: 0, y: 80 });
   gsap.set(landingText5.chars, { opacity: 0, y: 80 });
 
-  LoopText(landingText2, landingText3);
-  LoopText(landingText4, landingText5);
+  loopText(landingText2, landingText3);
+  loopText(landingText4, landingText5);
 
   requestAnimationFrame(() => {
     scheduleScrollLayoutRefresh();
   });
 }
 
-function LoopText(Text1: SplitText, Text2: SplitText) {
-  var tl = gsap.timeline({ repeat: -1, repeatDelay: 1 });
+/** @deprecated use revealSite + runLandingTextFX */
+export function initialFX() {
+  revealSite();
+  runLandingTextFX();
+}
+
+function loopText(Text1: SplitText, Text2: SplitText) {
+  const tl = gsap.timeline({ repeat: -1, repeatDelay: 1 });
   const delay = 4;
   const delay2 = delay * 2 + 1;
 
@@ -145,4 +164,12 @@ function LoopText(Text1: SplitText, Text2: SplitText) {
       },
       1
     );
+
+  ScrollTrigger.create({
+    trigger: ".landing-section",
+    start: "top top",
+    end: "bottom top",
+    onLeave: () => tl.pause(),
+    onEnterBack: () => tl.play(),
+  });
 }

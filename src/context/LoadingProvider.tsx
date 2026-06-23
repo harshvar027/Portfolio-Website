@@ -24,7 +24,10 @@ export const LoadingProvider = ({ children }: PropsWithChildren) => {
     setIsLoading,
     setLoading,
   };
-  useEffect(() => {}, [loading]);
+  useEffect(() => {
+    document.body.classList.toggle("site-loading", isLoading);
+    return () => document.body.classList.remove("site-loading");
+  }, [isLoading]);
 
   return (
     <LoadingContext.Provider value={value as LoadingType}>

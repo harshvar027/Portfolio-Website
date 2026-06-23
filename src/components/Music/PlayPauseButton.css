@@ -1,0 +1,57 @@
+.play-pause-btn {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #fff;
+  background: rgba(0, 212, 255, 0.18);
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  box-shadow: 0 4px 16px rgba(0, 212, 255, 0.15);
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.play-pause-btn:hover {
+  transform: scale(1.06);
+  background: rgba(0, 212, 255, 0.28);
+  box-shadow: 0 6px 20px rgba(0, 212, 255, 0.25);
+}
+
+.play-pause-btn:active {
+  transform: scale(0.96);
+}
+
+.play-pause-btn-md {
+  width: 42px;
+  height: 42px;
+}
+
+.play-pause-btn-sm {
+  width: 32px;
+  height: 32px;
+}
+
+.play-pause-btn-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.play-pause-btn-sm .play-pause-btn-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.play-pause-btn-notch {
+  background: rgba(127, 64, 255, 0.22);
+  border-color: rgba(194, 164, 255, 0.4);
+  box-shadow: 0 4px 14px rgba(127, 64, 255, 0.2);
+}
+
+.play-pause-btn-notch:hover {
+  background: rgba(127, 64, 255, 0.34);
+  box-shadow: 0 6px 18px rgba(127, 64, 255, 0.3);
+}

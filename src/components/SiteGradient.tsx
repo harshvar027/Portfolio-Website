@@ -22,6 +22,7 @@ export default function SiteGradient() {
     const init = () => {
       trigger?.kill();
       trigger = ScrollTrigger.create({
+        id: "site-gradient",
         trigger: content,
         start: "top top",
         end: "bottom bottom",

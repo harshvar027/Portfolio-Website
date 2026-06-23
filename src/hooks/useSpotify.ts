@@ -74,15 +74,20 @@ export function useSpotify() {
   );
   const [volume, setVolumeState] = useState(0.7);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [playbackPositionMs, setPlaybackPositionMs] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
   const volumeRef = useRef(volume);
   volumeRef.current = volume;
+  const playbackModeRef = useRef(playbackMode);
+  playbackModeRef.current = playbackMode;
 
   const tokensRef = useRef<SpotifyTokens | null>(readTokens());
   const playerRef = useRef<Spotify.Player | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const gainRef = useRef<GainNode | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const deviceIdRef = useRef<string | null>(null);
   const oauthProcessingRef = useRef(false);
@@ -113,6 +118,8 @@ export function useSpotify() {
     }
     sourceRef.current?.disconnect();
     sourceRef.current = null;
+    gainRef.current?.disconnect();
+    gainRef.current = null;
     analyserRef.current?.disconnect();
     analyserRef.current = null;
     if (ctxRef.current?.state !== "closed") {
@@ -125,6 +132,8 @@ export function useSpotify() {
     stopPreview();
     setPlaybackMode(null);
     setActiveTrack(null);
+    setPlaybackPositionMs(0);
+    setIsPaused(false);
     try {
       await playerRef.current?.pause();
     } catch {
@@ -166,6 +175,19 @@ export function useSpotify() {
       tokensRef.current = null;
       writeTokens(null);
       setConnected(false);
+    });
+
+    player.addListener("autoplay_failed", () => {
+      setAuthError(
+        "Browser blocked Spotify audio — click play again to hear sound."
+      );
+    });
+
+    player.addListener("player_state_changed", (data: unknown) => {
+      const state = data as Spotify.PlaybackState | null;
+      if (!state) return;
+      setPlaybackPositionMs(state.position);
+      setIsPaused(state.paused);
     });
 
     const connectedOk = await player.connect();
@@ -258,6 +280,50 @@ export function useSpotify() {
     };
   }, [connected, initPlayer, stopPreview]);
 
+  useEffect(() => {
+    if (playbackMode !== "preview") return;
+
+    let raf = 0;
+    const tick = () => {
+      const audio = audioRef.current;
+      if (audio && playbackModeRef.current === "preview") {
+        setPlaybackPositionMs(audio.currentTime * 1000);
+        setIsPaused(audio.paused);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [playbackMode]);
+
+  useEffect(() => {
+    if (playbackMode !== "spotify" || !playerRef.current) return;
+
+    let raf = 0;
+    let lastPoll = 0;
+
+    const tick = (now: number) => {
+      if (playbackModeRef.current !== "spotify") return;
+
+      if (now - lastPoll >= 50) {
+        lastPoll = now;
+        playerRef.current
+          ?.getCurrentState()
+          .then((state) => {
+            if (!state || playbackModeRef.current !== "spotify") return;
+            setPlaybackPositionMs(state.position);
+            setIsPaused(state.paused);
+          })
+          .catch(() => undefined);
+      }
+
+      raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [playbackMode, playerReady]);
+
   const login = useCallback(async () => {
     if (!isSpotifyConfigured()) {
       setAuthError(
@@ -288,6 +354,37 @@ export function useSpotify() {
     [getAccessToken]
   );
 
+  const waitForAudioReady = (audio: HTMLAudioElement) =>
+    new Promise<void>((resolve, reject) => {
+      if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+        resolve();
+        return;
+      }
+
+      const onReady = () => {
+        audio.removeEventListener("canplay", onReady);
+        audio.removeEventListener("error", onError);
+        resolve();
+      };
+      const onError = () => {
+        audio.removeEventListener("canplay", onReady);
+        audio.removeEventListener("error", onError);
+        reject(new Error("Could not load preview audio."));
+      };
+      audio.addEventListener("canplay", onReady, { once: true });
+      audio.addEventListener("error", onError, { once: true });
+    });
+
+  const activateSpotifyAudio = useCallback(async () => {
+    if (!playerRef.current) return;
+
+    try {
+      await playerRef.current.activateElement();
+    } catch {
+      /* noop */
+    }
+  }, []);
+
   const playPreview = useCallback(
     async (track: SpotifyTrack) => {
       if (!track.previewUrl) {
@@ -297,54 +394,19 @@ export function useSpotify() {
       stopPreview();
 
       const audio = new Audio();
-      audio.crossOrigin = "anonymous";
       audio.volume = volumeRef.current;
       audio.loop = true;
       audio.preload = "auto";
       audio.src = track.previewUrl;
 
-      const ctx = new AudioContext();
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 2048;
-      analyser.smoothingTimeConstant = 0.82;
-
-      await ctx.resume();
-
-      try {
-        const source = ctx.createMediaElementSource(audio);
-        source.connect(analyser);
-        analyser.connect(ctx.destination);
-        sourceRef.current = source;
-      } catch {
-        analyser.connect(ctx.destination);
-      }
-
-      const startPlayback = () => audio.play();
-      try {
-        await startPlayback();
-      } catch {
-        await new Promise<void>((resolve, reject) => {
-          const onReady = () => {
-            audio.removeEventListener("canplay", onReady);
-            audio.removeEventListener("error", onError);
-            resolve();
-          };
-          const onError = () => {
-            audio.removeEventListener("canplay", onReady);
-            audio.removeEventListener("error", onError);
-            reject(new Error("Could not load preview audio."));
-          };
-          audio.addEventListener("canplay", onReady, { once: true });
-          audio.addEventListener("error", onError, { once: true });
-        });
-        await startPlayback();
-      }
+      await waitForAudioReady(audio);
+      await audio.play();
 
       audioRef.current = audio;
-      ctxRef.current = ctx;
-      analyserRef.current = analyser;
       setPlaybackMode("preview");
       setActiveTrack(track);
+      setPlaybackPositionMs(0);
+      setIsPaused(false);
     },
     [stopPreview]
   );
@@ -384,46 +446,85 @@ export function useSpotify() {
         );
       });
 
-      if (track.previewUrl) {
-        void playPreview(track).catch(() => undefined);
-      }
+      await activateSpotifyAudio();
 
       try {
         const deviceId = await waitForDevice();
         await playOnDevice(token, deviceId, track.uri);
         stopPreview();
+        await playerRef.current?.resume();
         setPlaybackMode("spotify");
         setActiveTrack(track);
+        setPlaybackPositionMs(0);
+        setIsPaused(false);
         setAuthError(null);
-        return;
       } catch (err) {
-        if (track.previewUrl) {
-          if (!audioRef.current) {
-            await playPreview(track);
-          } else {
-            setPlaybackMode("preview");
-            setActiveTrack(track);
-          }
-          setAuthError(
-            err instanceof Error
-              ? `${err.message} Playing 30s preview instead.`
-              : "Playing preview instead."
-          );
-          return;
-        }
-        throw err;
+        if (!track.previewUrl) throw err;
+
+        await playPreview(track);
+        setAuthError(
+          err instanceof Error
+            ? `${err.message} Playing 30s preview instead.`
+            : "Playing preview instead."
+        );
       }
     },
-    [getAccessToken, playPreview, stopInternal, stopPreview, waitForDevice]
+    [
+      activateSpotifyAudio,
+      getAccessToken,
+      playPreview,
+      stopInternal,
+      stopPreview,
+      waitForDevice,
+    ]
   );
 
   const stop = useCallback(async () => {
     await stopInternal();
   }, [stopInternal]);
 
+  const togglePause = useCallback(async () => {
+    if (playbackModeRef.current === "preview") {
+      const audio = audioRef.current;
+      if (!audio) return;
+
+      if (audio.paused) {
+        if (ctxRef.current?.state === "suspended") {
+          await ctxRef.current.resume();
+        }
+        await audio.play();
+        setIsPaused(false);
+      } else {
+        audio.pause();
+        setIsPaused(true);
+      }
+      return;
+    }
+
+    if (playbackModeRef.current !== "spotify" || !playerRef.current) return;
+
+    try {
+      const state = await playerRef.current.getCurrentState();
+      if (!state) return;
+
+      if (state.paused) {
+        await playerRef.current.resume();
+        setIsPaused(false);
+      } else {
+        await playerRef.current.pause();
+        setIsPaused(true);
+      }
+    } catch {
+      /* noop */
+    }
+  }, []);
+
   const setVolume = useCallback(
     async (value: number) => {
       setVolumeState(value);
+      if (gainRef.current) {
+        gainRef.current.gain.value = value;
+      }
       if (audioRef.current) {
         audioRef.current.volume = value;
       }
@@ -450,12 +551,15 @@ export function useSpotify() {
     playbackMode,
     volume,
     authError,
+    playbackPositionMs,
+    isPaused,
     login,
     logout,
     search,
     playPreviewOnly,
     playTrack,
     stop,
+    togglePause,
     setVolume,
     getAnalyser,
     isPlaying,

@@ -6,7 +6,7 @@
   font-optical-sizing: auto;
   font-style: normal;
   line-height: 1.5;
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   color-scheme: light dark;
   color: #eae5ec;
   background-color: var(--backgroundColor);
@@ -44,11 +44,11 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  pointer-events: auto;
 }
 
 #smooth-content {
   overflow: visible;
-  will-change: transform;
 }
 a {
   color: inherit;
@@ -63,10 +63,11 @@ main {
 .main-body {
   max-width: 100vw;
   overflow-x: hidden;
-}
-.main-active {
   opacity: 0;
-  animation: mainReveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.12s forwards;
+}
+.main-body.main-active {
+  opacity: 1;
+  animation: mainReveal 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 @keyframes mainReveal {
   from {
@@ -88,7 +89,7 @@ main {
   .loading-exit .loading-curtain {
     animation: none;
   }
-  .main-active {
+  .main-body.main-active {
     animation: mainReveal 0.35s forwards;
   }
 }

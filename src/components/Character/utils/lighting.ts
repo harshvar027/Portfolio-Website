@@ -2,13 +2,17 @@ import * as THREE from "three";
 import { RGBELoader } from "three-stdlib";
 import { gsap } from "gsap";
 
-const setLighting = (scene: THREE.Scene) => {
+const setLighting = (
+  scene: THREE.Scene,
+  options: { shadows?: boolean } = {}
+) => {
+  const shadowSize = options.shadows === false ? 0 : 1024;
   const directionalLight = new THREE.DirectionalLight(0xd4b8ff, 0);
   directionalLight.intensity = 0;
   directionalLight.position.set(2.2, 4.5, 3.5);
-  directionalLight.castShadow = true;
-  directionalLight.shadow.mapSize.width = 2048;
-  directionalLight.shadow.mapSize.height = 2048;
+  directionalLight.castShadow = shadowSize > 0;
+  directionalLight.shadow.mapSize.width = shadowSize;
+  directionalLight.shadow.mapSize.height = shadowSize;
   directionalLight.shadow.camera.near = 0.5;
   directionalLight.shadow.camera.far = 50;
   scene.add(directionalLight);
@@ -23,7 +27,7 @@ const setLighting = (scene: THREE.Scene) => {
 
   const pointLight = new THREE.PointLight(0xc8a8ff, 0, 100, 3);
   pointLight.position.set(3, 12, 4);
-  pointLight.castShadow = true;
+  pointLight.castShadow = shadowSize > 0;
   scene.add(pointLight);
 
   new RGBELoader()
@@ -42,7 +46,7 @@ const setLighting = (scene: THREE.Scene) => {
       pointLight.intensity = 0;
     }
   }
-  const duration = 2;
+  const duration = 0.75;
   const ease = "power2.inOut";
   function turnOnLights() {
     gsap.to(scene, {
@@ -70,8 +74,8 @@ const setLighting = (scene: THREE.Scene) => {
       gsap.to(charRim, {
         y: "55%",
         opacity: 1,
-        delay: 0.2,
-        duration: 2,
+        delay: 0.05,
+        duration: 0.75,
       });
     }
   }

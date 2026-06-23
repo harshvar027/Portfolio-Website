@@ -1,12 +1,15 @@
 .music-invite-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 99999999;
+  z-index: 10060;
   display: grid;
   place-items: center;
   padding: 24px;
   background: rgba(4, 3, 6, 0.72);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  pointer-events: auto;
+  touch-action: manipulation;
   animation: musicInviteFade 0.65s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -28,6 +31,8 @@
     0 30px 80px rgba(0, 0, 0, 0.55),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   padding: 32px 28px 28px;
+  pointer-events: auto;
+  touch-action: manipulation;
 }
 
 .music-invite-close {
@@ -44,6 +49,7 @@
   line-height: 1;
   cursor: pointer;
   z-index: 2;
+  touch-action: manipulation;
 }
 
 .music-invite-close:hover {
@@ -68,5 +74,21 @@
   }
   to {
     opacity: 1;
+  }
+}
+
+body.music-invite-open {
+  overflow: hidden;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .music-picker-btn {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  .music-invite-close {
+    min-width: 44px;
+    min-height: 44px;
   }
 }

@@ -11,11 +11,11 @@ import {
   buildHeadCloud,
   buildImageCloud,
   buildParticleBuffers,
+  getAdaptiveParticleCount,
   loadImageCloudSamples,
-  PARTICLE_COUNT,
   PARTICLE_PROFILE_IMAGE,
   visibleSize,
-  type ImageSample,
+  type ProcessedPortrait,
 } from "./particleMorphUtils";
 import { anchorHostBaseStyle, useAnchorSync } from "../../hooks/useAnchorRect";
 import { smoother } from "../utils/scrollSmoother";
@@ -56,7 +56,12 @@ const ParticleMorphLayer = () => {
   const hostRef = useRef<HTMLDivElement>(null);
   const anchor = useAnchorSync(PARTICLE_ANCHOR_ID, hostRef);
   const visibleRef = useRef(false);
+  const restartAnimateRef = useRef<(() => void) | null>(null);
   visibleRef.current = anchor.visible;
+
+  useEffect(() => {
+    if (anchor.visible) restartAnimateRef.current?.();
+  }, [anchor.visible]);
 
   useEffect(() => {
     setMounted(true);
@@ -74,7 +79,9 @@ const ParticleMorphLayer = () => {
     let renderer: THREE.WebGLRenderer | null = null;
     let rafId = 0;
     let morphTrigger: ScrollTrigger | null = null;
-    let imageSamples: ImageSample[] | null = null;
+    let portraitData: ProcessedPortrait | null = null;
+    let lastSize = { w: 0, h: 0 };
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(50, 1, 0.01, 1000);
@@ -90,17 +97,22 @@ const ParticleMorphLayer = () => {
       if (!renderer) return;
 
       const { vw, vh } = visibleSize(camera);
-      const targetBuilder = imageSamples
+      const particleCount = getAdaptiveParticleCount();
+      const targetBuilder = portraitData
         ? (count: number, width: number, height: number) =>
-            buildImageCloud(count, width, height, imageSamples!)
+            buildImageCloud(count, width, height, portraitData!)
         : buildHeadCloud;
 
-      const { srcPos, dstPos, seeds, sizes } = buildParticleBuffers(
-        PARTICLE_COUNT,
-        vw,
-        vh,
-        targetBuilder
-      );
+      const {
+        srcPos,
+        dstPos,
+        seeds,
+        sizes,
+        targetColors,
+        targetWeights,
+        jitters,
+        cellAreas,
+      } = buildParticleBuffers(particleCount, vw, vh, targetBuilder);
 
       geometry?.dispose();
       material?.dispose();
@@ -115,6 +127,19 @@ const ParticleMorphLayer = () => {
       geometry.setAttribute("aDst", new THREE.BufferAttribute(dstPos, 3));
       geometry.setAttribute("aSeed", new THREE.BufferAttribute(seeds, 1));
       geometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
+      geometry.setAttribute(
+        "aTargetCol",
+        new THREE.BufferAttribute(targetColors, 3)
+      );
+      geometry.setAttribute(
+        "aTargetWeight",
+        new THREE.BufferAttribute(targetWeights, 1)
+      );
+      geometry.setAttribute("aJitter", new THREE.BufferAttribute(jitters, 2));
+      geometry.setAttribute(
+        "aCellArea",
+        new THREE.BufferAttribute(cellAreas, 1)
+      );
 
       material = new THREE.ShaderMaterial({
         uniforms: {
@@ -128,6 +153,9 @@ const ParticleMorphLayer = () => {
         transparent: true,
         depthWrite: false,
         depthTest: false,
+        blending: THREE.CustomBlending,
+        blendSrc: THREE.OneFactor,
+        blendDst: THREE.OneMinusSrcAlphaFactor,
       });
 
       points = new THREE.Points(geometry, material);
@@ -141,11 +169,23 @@ const ParticleMorphLayer = () => {
       const r = anchor.getBoundingClientRect();
       const w = r.width || window.innerWidth;
       const h = r.height || window.innerHeight;
+      if (
+        Math.abs(w - lastSize.w) < 2 &&
+        Math.abs(h - lastSize.h) < 2
+      ) {
+        return;
+      }
+      lastSize = { w, h };
       renderer.setSize(w, h);
       camera.aspect = w / Math.max(h, 1);
       camera.updateProjectionMatrix();
       buildParticles();
       morphTrigger?.refresh();
+    };
+
+    const debouncedSetSize = () => {
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(setSize, 150);
     };
 
     const initScroll = () => {
@@ -192,21 +232,27 @@ const ParticleMorphLayer = () => {
       material?.uniforms.uMouse.value.set(999, 999, 0);
     };
 
-    const animate = (ts: number) => {
-      rafId = requestAnimationFrame(animate);
+    const startAnimate = () => {
+      if (rafId) return;
+      const run = (time: number) => {
+        if (!visibleRef.current) {
+          rafId = 0;
+          return;
+        }
+        rafId = requestAnimationFrame(run);
 
-      if (morphTrigger) {
-        scrollState.raw = morphTrigger.progress;
-      }
-      // Keep morph progress locked to scroll (no extra lag behind scrub).
-      scrollState.smooth = scrollState.raw;
+        if (morphTrigger) {
+          scrollState.raw = morphTrigger.progress;
+        }
+        scrollState.smooth = scrollState.raw;
 
-      // Skip GPU work while the section is off-screen.
-      if (!visibleRef.current || !material || !renderer) return;
+        if (!material || !renderer) return;
 
-      material.uniforms.uTime.value = ts * 0.001;
-      material.uniforms.uProgress.value = scrollState.smooth;
-      renderer.render(scene, camera);
+        material.uniforms.uTime.value = time * 0.001;
+        material.uniforms.uProgress.value = scrollState.smooth;
+        renderer.render(scene, camera);
+      };
+      rafId = requestAnimationFrame(run);
     };
 
     const start = () => {
@@ -229,17 +275,19 @@ const ParticleMorphLayer = () => {
       requestAnimationFrame(() => {
         initScroll();
       });
-      window.addEventListener("resize", setSize);
+      window.addEventListener("resize", debouncedSetSize);
       host.addEventListener("mousemove", onMouseMove);
       host.addEventListener("mouseleave", onMouseLeave);
-      animate(0);
+      if (visibleRef.current) startAnimate();
     };
+
+    restartAnimateRef.current = () => startAnimate();
 
     waitForSiteReady()
       .then(() => loadImageCloudSamples(PARTICLE_PROFILE_IMAGE))
-      .then((samples) => {
+      .then((portrait) => {
         if (cancelled) return;
-        imageSamples = samples;
+        portraitData = portrait;
         start();
       })
       .catch(() => {
@@ -249,8 +297,10 @@ const ParticleMorphLayer = () => {
 
     return () => {
       cancelled = true;
+      restartAnimateRef.current = null;
       cancelAnimationFrame(rafId);
-      window.removeEventListener("resize", setSize);
+      if (resizeTimer) clearTimeout(resizeTimer);
+      window.removeEventListener("resize", debouncedSetSize);
       host.removeEventListener("mousemove", onMouseMove);
       host.removeEventListener("mouseleave", onMouseLeave);
       morphTrigger?.kill();
