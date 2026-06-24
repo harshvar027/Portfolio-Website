@@ -1,4 +1,7 @@
 import type { SpotifySearchResponse } from "../src/lib/spotify/types.js";
+import { enrichTracksWithPreviews, resolveItunesPreview } from "./itunesPreview.js";
+
+const FETCH_TIMEOUT_MS = 12_000;
 
 export type PreviewTrack = {
   id: string;
@@ -45,6 +48,7 @@ async function getAppAccessToken(): Promise<string> {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
 
   if (!res.ok) {
@@ -106,6 +110,7 @@ export async function searchSpotifyPreviews(
     `https://api.spotify.com/v1/search?${params.toString()}`,
     {
       headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     }
   );
 
@@ -119,5 +124,15 @@ export async function searchSpotifyPreviews(
   }
 
   const data = (await res.json()) as SpotifySearchResponse;
-  return data.tracks.items.map(mapTrack);
+  const tracks = data.tracks.items.map(mapTrack);
+  return enrichTracksWithPreviews(tracks);
+}
+
+export async function resolveTrackPreview(
+  trackName: string,
+  artistName: string,
+  existingPreviewUrl: string | null = null
+): Promise<string | null> {
+  if (existingPreviewUrl) return existingPreviewUrl;
+  return resolveItunesPreview(trackName, artistName);
 }

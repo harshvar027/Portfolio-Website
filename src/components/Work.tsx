@@ -1,23 +1,24 @@
-import "./styles/Work.css";
-import "./showcases/showcases.css";
-import { Carousel3D, Structure3D, NeuralAI, EcommerceUI } from "./showcases";
-import TiltCard from "./TiltCard";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useGSAP } from "@gsap/react";
-import { useEffect, useRef, useState } from "react";
-import { smoother } from "./utils/scrollSmoother";
-import { scheduleScrollLayoutRefresh } from "./utils/GsapScroll";
+import "./styles/Work.css"
+import "./showcases/showcases.css"
+import { Carousel3D, Structure3D, NeuralAI, EcommerceUI } from "./showcases"
+import TiltCard from "./TiltCard"
+import gsap from "gsap"
+import { ScrollTrigger } from "gsap/ScrollTrigger"
+import { useGSAP } from "@gsap/react"
+import { useEffect, useRef, useState } from "react"
+import { refreshScrollLayout } from "./utils/GsapScroll"
 
-gsap.registerPlugin(useGSAP, ScrollTrigger);
+gsap.registerPlugin(useGSAP, ScrollTrigger)
 
-type Showcase = "carousel" | "structure" | "ai" | "ecommerce";
+type Showcase = "carousel" | "structure" | "ai" | "ecommerce"
+
+const PHONE_MAX = 767
 
 const projects: {
-  title: string;
-  category: string;
-  tools: string;
-  showcase: Showcase;
+  title: string
+  category: string
+  tools: string
+  showcase: Showcase
 }[] = [
   {
     title: "Aurora",
@@ -43,125 +44,157 @@ const projects: {
     tools: "React, Stripe, Animated 3D Backgrounds, UX Design",
     showcase: "ecommerce",
   },
-];
+]
 
 const renderShowcase = (type: Showcase) => {
   switch (type) {
     case "carousel":
-      return <Carousel3D />;
+      return <Carousel3D />
     case "structure":
-      return <Structure3D />;
+      return <Structure3D />
     case "ai":
-      return <NeuralAI />;
+      return <NeuralAI />
     case "ecommerce":
-      return <EcommerceUI />;
+      return <EcommerceUI />
   }
-};
+}
 
-const HEAVY_SHOWCASES: Showcase[] = ["structure", "ai"];
+const HEAVY_SHOWCASES: Showcase[] = ["structure", "ai"]
+
+const prefersReducedMotion = () =>
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches
 
 const WorkShowcase = ({ type }: { type: Showcase }) => {
-  const hostRef = useRef<HTMLDivElement>(null);
-  const [active, setActive] = useState(!HEAVY_SHOWCASES.includes(type));
+  const hostRef = useRef<HTMLDivElement>(null)
+  const [active, setActive] = useState(!HEAVY_SHOWCASES.includes(type))
 
   useEffect(() => {
-    if (!HEAVY_SHOWCASES.includes(type)) return;
+    if (!HEAVY_SHOWCASES.includes(type)) return
 
-    const card = hostRef.current?.closest(".work-box-tilt");
-    if (!card) return;
+    const card = hostRef.current?.closest(".work-box-tilt")
+    if (!card) return
 
     const observer = new IntersectionObserver(
       ([entry]) => setActive(entry.isIntersecting),
       { rootMargin: "120px", threshold: 0.05 }
-    );
-    observer.observe(card);
+    )
+    observer.observe(card)
 
-    return () => observer.disconnect();
-  }, [type]);
+    return () => observer.disconnect()
+  }, [type])
 
   return (
     <div ref={hostRef} className="work-showcase">
       {active ? renderShowcase(type) : null}
     </div>
-  );
-};
+  )
+}
 
 const Work = () => {
+  const [activeDot, setActiveDot] = useState(0)
+  const [isPhone, setIsPhone] = useState(
+    () => window.innerWidth <= PHONE_MAX
+  )
+
+  useEffect(() => {
+    const onResize = () => setIsPhone(window.innerWidth <= PHONE_MAX)
+    window.addEventListener("resize", onResize)
+    return () => window.removeEventListener("resize", onResize)
+  }, [])
+
   useGSAP(() => {
-    let timeline: gsap.core.Timeline | null = null;
+    let desktopTimeline: gsap.core.Timeline | null = null
+    let phoneTween: gsap.core.Tween | null = null
+    let cloneNode: HTMLElement | null = null
+    let dotTimer: ReturnType<typeof setInterval> | null = null
 
     const stage = document.querySelector(
       ".work-cards-stage"
-    ) as HTMLElement | null;
-    const flex = document.querySelector(".work-flex") as HTMLElement | null;
+    ) as HTMLElement | null
+    const flex = document.querySelector(".work-flex") as HTMLElement | null
 
-    function getCards() {
-      if (!flex) return [];
-      return [...flex.querySelectorAll(".work-box-tilt")] as HTMLElement[];
+    const getCards = () => {
+      if (!flex) return []
+      return [
+        ...flex.querySelectorAll(".work-box-tilt:not(.work-carousel-clone)"),
+      ] as HTMLElement[]
     }
 
-    /** Pan the full row — all cards stay in view; only shifts when row overflows. */
-    function measurePanRange() {
-      if (!stage || !flex) return { startX: 0, endX: 0 };
+    const cleanupPhone = () => {
+      phoneTween?.kill()
+      phoneTween = null
+      if (dotTimer) {
+        clearInterval(dotTimer)
+        dotTimer = null
+      }
+      cloneNode?.remove()
+      cloneNode = null
+      gsap.set(flex, { clearProps: "x" })
+      getCards().forEach((card) => card.classList.remove("is-focused"))
+      stage?.classList.remove("work-carousel-mode")
+    }
 
-      gsap.set(flex, { x: 0 });
+    const cleanupDesktop = () => {
+      desktopTimeline?.kill()
+      ScrollTrigger.getById("work")?.kill()
+      desktopTimeline = null
+      gsap.set(flex, { clearProps: "x" })
+      getCards().forEach((card) => card.classList.remove("is-focused"))
+    }
 
-      const stageWidth = stage.clientWidth;
-      const flexWidth = flex.scrollWidth;
-      const overflow = Math.max(0, flexWidth - stageWidth);
+    const measurePanRange = () => {
+      if (!stage || !flex) return { startX: 0, endX: 0 }
+
+      gsap.set(flex, { x: 0 })
+
+      const stageWidth = stage.clientWidth
+      const flexWidth = flex.scrollWidth
+      const overflow = Math.max(0, flexWidth - stageWidth)
 
       if (overflow === 0) {
-        const centered = (stageWidth - flexWidth) / 2;
-        return { startX: centered, endX: centered };
+        const centered = (stageWidth - flexWidth) / 2
+        return { startX: centered, endX: centered }
       }
 
-      return { startX: 0, endX: -overflow };
+      return { startX: 0, endX: -overflow }
     }
 
-    function getScrollLength(cardCount: number) {
-      if (cardCount <= 1) return 0;
-      return (cardCount - 1) * window.innerHeight * 0.38 + window.innerHeight * 0.2;
+    const getScrollLength = (cardCount: number) => {
+      if (cardCount <= 1) return 0
+      return (
+        (cardCount - 1) * window.innerHeight * 0.38 + window.innerHeight * 0.2
+      )
     }
 
-    function setFocusedCard(index: number) {
+    const setFocusedCard = (index: number) => {
       getCards().forEach((card, i) => {
-        card.classList.toggle("is-focused", i === index);
-      });
+        card.classList.toggle("is-focused", i === index)
+      })
+      setActiveDot(index)
     }
 
-    const build = () => {
-      if (window.innerWidth <= 1024) {
-        getCards().forEach((card) => card.classList.remove("is-focused"));
-        return;
-      }
-      if (!flex || !stage) return;
+    const buildDesktop = () => {
+      cleanupDesktop()
+      if (!flex || !stage) return
 
-      const cards = getCards();
-      if (cards.length < 2) return;
+      const cards = getCards()
+      if (cards.length < 2) return
 
-      const { startX, endX } = measurePanRange();
-      const overflow = Math.max(0, flex.scrollWidth - stage.clientWidth);
+      const { startX, endX } = measurePanRange()
+      const overflow = Math.max(0, flex.scrollWidth - stage.clientWidth)
 
       if (overflow === 0) {
-        timeline?.kill();
-        ScrollTrigger.getById("work")?.kill();
-        timeline = null;
-        gsap.set(flex, { x: startX });
-        getCards().forEach((card) => card.classList.remove("is-focused"));
-        return;
+        gsap.set(flex, { x: startX })
+        return
       }
 
-      const scrollLength = getScrollLength(cards.length);
-      if (scrollLength <= 0) return;
+      const scrollLength = getScrollLength(cards.length)
+      if (scrollLength <= 0) return
 
-      timeline?.kill();
-      ScrollTrigger.getById("work")?.kill();
-      timeline = null;
+      gsap.set(flex, { x: startX })
+      setFocusedCard(0)
 
-      gsap.set(flex, { x: startX });
-      setFocusedCard(0);
-
-      timeline = gsap.timeline({
+      desktopTimeline = gsap.timeline({
         defaults: { ease: "none" },
         scrollTrigger: {
           trigger: ".work-section",
@@ -174,56 +207,142 @@ const Work = () => {
           invalidateOnRefresh: true,
           id: "work",
           onLeaveBack: () => {
-            gsap.set(flex, { x: startX });
-            setFocusedCard(0);
+            gsap.set(flex, { x: startX })
+            setFocusedCard(0)
           },
           onUpdate: (self) => {
-            const idx = Math.round(self.progress * (cards.length - 1));
-            setFocusedCard(idx);
+            const idx = Math.round(self.progress * (cards.length - 1))
+            setFocusedCard(idx)
           },
         },
-      });
+      })
 
-      timeline.fromTo(flex, { x: startX }, { x: endX, duration: 1 });
+      desktopTimeline.fromTo(flex, { x: startX }, { x: endX, duration: 1 })
 
-      ScrollTrigger.refresh(false);
-      scheduleScrollLayoutRefresh(() => {
-        smoother?.refresh(false);
-      });
-    };
+      ScrollTrigger.refresh(false)
+      refreshScrollLayout()
+    }
 
-    let rafId = 0;
+    const buildPhoneCarousel = () => {
+      cleanupPhone()
+      if (!flex || !stage) return
+
+      stage.classList.add("work-carousel-mode")
+
+      const cards = getCards()
+      if (cards.length === 0) return
+
+      const firstCard = cards[0]
+      cloneNode = firstCard.cloneNode(true) as HTMLElement
+      cloneNode.classList.add("work-carousel-clone")
+      cloneNode.setAttribute("aria-hidden", "true")
+      flex.appendChild(cloneNode)
+
+      const gap = 16
+      const cardWidth = cards[0].offsetWidth + gap
+      const loopDistance = cardWidth * cards.length
+
+      setFocusedCard(0)
+
+      if (prefersReducedMotion()) {
+        stage.style.overflowX = "auto"
+        stage.style.scrollSnapType = "x mandatory"
+        return
+      }
+
+      gsap.set(flex, { x: 0 })
+
+      phoneTween = gsap.to(flex, {
+        x: -loopDistance,
+        duration: cards.length * 6,
+        ease: "none",
+        repeat: -1,
+        onRepeat: () => {
+          gsap.set(flex, { x: 0 })
+        },
+      })
+
+      const updateDot = () => {
+        if (!phoneTween || !flex) return
+        const progress = Math.abs(gsap.getProperty(flex, "x") as number)
+        const idx = Math.round(progress / cardWidth) % cards.length
+        setFocusedCard(idx)
+      }
+
+      dotTimer = setInterval(updateDot, 200)
+
+      const pause = () => phoneTween?.pause()
+      const resume = () => phoneTween?.resume()
+
+      stage.addEventListener("touchstart", pause, { passive: true })
+      stage.addEventListener("touchend", resume, { passive: true })
+      stage.addEventListener("touchcancel", resume, { passive: true })
+
+      return () => {
+        stage.removeEventListener("touchstart", pause)
+        stage.removeEventListener("touchend", resume)
+        stage.removeEventListener("touchcancel", resume)
+      }
+    }
+
+    let phoneListenersCleanup: (() => void) | undefined
+
+    const build = () => {
+      const width = window.innerWidth
+
+      if (width <= PHONE_MAX) {
+        cleanupDesktop()
+        phoneListenersCleanup?.()
+        phoneListenersCleanup = buildPhoneCarousel()
+        return
+      }
+
+      cleanupPhone()
+      phoneListenersCleanup?.()
+      phoneListenersCleanup = undefined
+
+      if (width <= 1024) {
+        cleanupDesktop()
+        getCards().forEach((card) => card.classList.remove("is-focused"))
+        return
+      }
+
+      buildDesktop()
+    }
+
+    let rafId = 0
     const waitForSmoother = () => {
       if (
         document.querySelector("main.main-active") &&
         document.querySelector(".work-cards-stage")
       ) {
-        build();
-        return;
+        requestAnimationFrame(() => requestAnimationFrame(build))
+        return
       }
-      rafId = requestAnimationFrame(waitForSmoother);
-    };
-    waitForSmoother();
+      rafId = requestAnimationFrame(waitForSmoother)
+    }
+    waitForSmoother()
 
     const refresh = () => {
       if (document.querySelector("main.main-active")) {
-        build();
+        build()
       }
-    };
-    window.addEventListener("load", refresh);
+    }
+    window.addEventListener("load", refresh)
+    window.addEventListener("resize", refresh)
     if (document.fonts?.ready) {
-      document.fonts.ready.then(refresh);
+      document.fonts.ready.then(refresh)
     }
 
     return () => {
-      cancelAnimationFrame(rafId);
-      window.removeEventListener("load", refresh);
-      timeline?.kill();
-      ScrollTrigger.getById("work")?.kill();
-      gsap.set(".work-flex", { clearProps: "x" });
-      getCards().forEach((card) => card.classList.remove("is-focused"));
-    };
-  }, []);
+      cancelAnimationFrame(rafId)
+      window.removeEventListener("load", refresh)
+      window.removeEventListener("resize", refresh)
+      phoneListenersCleanup?.()
+      cleanupPhone()
+      cleanupDesktop()
+    }
+  }, [])
 
   return (
     <div className="work-section" id="work">
@@ -247,6 +366,7 @@ const Work = () => {
                 maxTilt={14}
                 depth={32}
                 hoverScale={1.03}
+                hoverOnly
               >
                 <div className="work-box">
                   <div className="work-info">
@@ -266,9 +386,28 @@ const Work = () => {
             ))}
           </div>
         </div>
+        {isPhone && (
+          <div
+            className="work-carousel-dots"
+            role="tablist"
+            aria-label="Work projects"
+          >
+            {projects.map((project, index) => (
+              <button
+                key={project.title}
+                type="button"
+                className={`work-carousel-dot${activeDot === index ? " is-active" : ""}`}
+                role="tab"
+                aria-selected={activeDot === index}
+                aria-label={project.title}
+                tabIndex={0}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Work;
+export default Work

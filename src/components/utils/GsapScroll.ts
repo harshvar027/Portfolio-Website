@@ -1,8 +1,10 @@
 import * as THREE from "three";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { smoother } from "./scrollSmoother";
 
 const CHAR_TRIGGER_IDS = ["char-landing", "char-about", "char-what", "char-mobile"];
+const MOBILE_FX_IDS = ["mobile-about", "mobile-what", "mobile-work", "what-reveal-fallback"];
 
 let registeredCharacter: THREE.Object3D | null = null;
 let registeredCamera: THREE.PerspectiveCamera | null = null;
@@ -18,6 +20,119 @@ function killCharTriggers() {
   screenLightTimeline?.kill();
   screenLightTimeline = null;
   CHAR_TRIGGER_IDS.forEach((id) => ScrollTrigger.getById(id)?.kill());
+  MOBILE_FX_IDS.forEach((id) => ScrollTrigger.getById(id)?.kill());
+}
+
+const prefersReducedMotion = () =>
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const isDesktopCharacterLayout = () => window.innerWidth > 1024;
+
+/** Desktop uses left:50% + xPercent:-50; mobile must reset GSAP transforms or the model shifts left. */
+function applyCharacterModelLayout(charModel: Element) {
+  if (isDesktopCharacterLayout()) {
+    gsap.set(charModel, { xPercent: -50, x: 0, y: 0 });
+    return;
+  }
+  gsap.set(charModel, { xPercent: 0, x: 0, y: 0, clearProps: "transform" });
+}
+
+function setupWhatSectionReveal() {
+  const whatHeader = document.querySelector(".what-header");
+  const whatCards = document.querySelector(".what-box-in");
+  if (!whatHeader || !whatCards) return;
+
+  ScrollTrigger.getById("what-reveal-fallback")?.kill();
+
+  gsap.set(whatCards, { display: "flex" });
+
+  const revealTl = gsap.timeline({
+    scrollTrigger: {
+      id: "what-reveal-fallback",
+      trigger: ".whatIDO",
+      start: "top 82%",
+      toggleActions: "play none none reverse",
+    },
+  });
+
+  revealTl
+    .fromTo(
+      whatHeader,
+      { autoAlpha: 0, y: 28 },
+      { autoAlpha: 1, y: 0, duration: 0.65, ease: "power2.out", immediateRender: false }
+    )
+    .fromTo(
+      whatCards,
+      { autoAlpha: 0, y: 24 },
+      {
+        autoAlpha: 1,
+        y: 0,
+        duration: 0.6,
+        ease: "power2.out",
+        immediateRender: false,
+      },
+      "-=0.35"
+    )
+    .call(() => {
+      whatCards.querySelectorAll(".what-content-in").forEach((el) => {
+        (el as HTMLElement).style.opacity = "1";
+      });
+    });
+}
+
+function setupPhoneScrollFX() {
+  if (window.innerWidth > 1024) return;
+
+  if (prefersReducedMotion()) {
+    gsap.set(".what-header, .what-box-in", { autoAlpha: 1, y: 0 });
+    gsap.set(".what-box-in", { display: "flex" });
+    document.querySelectorAll(".what-content-in").forEach((el) => {
+      (el as HTMLElement).style.opacity = "1";
+    });
+    return;
+  }
+
+  const about = document.querySelector(".about-section");
+  if (about) {
+    gsap.fromTo(
+      about,
+      { autoAlpha: 0, y: 24 },
+      {
+        autoAlpha: 1,
+        y: 0,
+        duration: 0.7,
+        ease: "power2.out",
+        scrollTrigger: {
+          id: "mobile-about",
+          trigger: about,
+          start: "top 88%",
+          toggleActions: "play none none reverse",
+        },
+      }
+    );
+  }
+
+  setupWhatSectionReveal();
+
+  const workHeader = document.querySelector(".work-header");
+  if (workHeader) {
+    gsap.fromTo(
+      workHeader,
+      { autoAlpha: 0, y: 20 },
+      {
+        autoAlpha: 1,
+        y: 0,
+        duration: 0.6,
+        ease: "power2.out",
+        scrollTrigger: {
+          id: "mobile-work",
+          trigger: workHeader,
+          start: "top 88%",
+          toggleActions: "play none none reverse",
+        },
+      }
+    );
+  }
 }
 
 function hasPageSections() {
@@ -40,7 +155,7 @@ export function setCharTimeline(
   const charModel = document.querySelector(".character-model");
   if (!charModel) return;
 
-  gsap.set(charModel, { xPercent: -50 });
+  applyCharacterModelLayout(charModel);
 
   if (window.innerWidth > 1024) {
     gsap.set(".about-section", { autoAlpha: 0 });
@@ -169,13 +284,6 @@ export function setCharTimeline(
       if (screenLight?.material) {
         tl2.to(screenLight.material, { opacity: 1, duration: 0.8, delay: 4.5 }, 0);
       }
-      tl2
-        .fromTo(
-          ".what-box-in",
-          { display: "none" },
-          { display: "flex", duration: 0.1, delay: 6 },
-          0
-        );
       if (monitor) {
         tl2.fromTo(
           monitor.position,
@@ -184,13 +292,12 @@ export function setCharTimeline(
           0
         );
       }
-      tl2
-        .fromTo(
-          ".character-rim",
-          { opacity: 1, scaleX: 1.4 },
-          { opacity: 0, scale: 0, y: "-70%", duration: 5, delay: 2 },
-          0.3
-        );
+      tl2.fromTo(
+        ".character-rim",
+        { opacity: 1, scaleX: 1.4 },
+        { opacity: 0, scale: 0, y: "-70%", duration: 5, delay: 2 },
+        0.3
+      );
 
       tl3
         .fromTo(
@@ -202,17 +309,37 @@ export function setCharTimeline(
         .fromTo(".whatIDO", { y: 0 }, { y: "15%", duration: 2 }, 0)
         .to(character.rotation, { x: -0.04, duration: 2, delay: 1 }, 0);
     }
-  } else if (character) {
-    const tM2 = gsap.timeline({
-      scrollTrigger: {
-        id: "char-mobile",
-        trigger: ".whatIDO",
-        start: "top 85%",
-        end: "bottom top",
-      },
-    });
-    tM2.to(".what-box-in", { display: "flex", duration: 0.1, delay: 0 }, 0);
+
+    tl3
+      .fromTo(
+        ".what-header",
+        { autoAlpha: 0, y: 28 },
+        { autoAlpha: 1, y: 0, duration: 0.35, immediateRender: false },
+        0
+      )
+      .fromTo(
+        ".what-box-in",
+        { autoAlpha: 0, y: 24 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          display: "flex",
+          duration: 0.4,
+          immediateRender: false,
+          onStart: () => {
+            gsap.set(".what-box-in", { display: "flex" });
+          },
+          onComplete: () => {
+            document.querySelectorAll(".what-content-in").forEach((el) => {
+              (el as HTMLElement).style.opacity = "1";
+            });
+          },
+        },
+        0.2
+      );
   }
+
+  setupPhoneScrollFX();
 }
 
 export function refreshAllScrollAnimations() {
@@ -221,13 +348,31 @@ export function refreshAllScrollAnimations() {
   ScrollTrigger.refresh(false);
 }
 
+export function refreshScrollLayout(onComplete?: () => void) {
+  if (!document.querySelector("main.main-active")) return;
+  ScrollTrigger.refresh(false);
+  smoother?.refresh(false);
+  onComplete?.();
+}
+
 let scrollRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 
-/** Debounced layout refresh — avoids breaking ScrollSmoother with repeated full rebuilds. */
+/** Debounced layout refresh — updates scroll height without rebuilding character timelines. */
 export function scheduleScrollLayoutRefresh(onComplete?: () => void) {
   if (scrollRefreshTimer) clearTimeout(scrollRefreshTimer);
   scrollRefreshTimer = setTimeout(() => {
     scrollRefreshTimer = null;
+    refreshScrollLayout(onComplete);
+  }, 120);
+}
+
+let charRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Debounced character timeline rebuild — use only on resize, not layout changes. */
+export function scheduleCharacterScrollRefresh(onComplete?: () => void) {
+  if (charRefreshTimer) clearTimeout(charRefreshTimer);
+  charRefreshTimer = setTimeout(() => {
+    charRefreshTimer = null;
     refreshAllScrollAnimations();
     onComplete?.();
   }, 120);
@@ -242,7 +387,7 @@ export function initScrollTimelines(
 
   const charModel = document.querySelector(".character-model");
   if (charModel) {
-    gsap.set(charModel, { xPercent: -50 });
+    applyCharacterModelLayout(charModel);
   }
 
   const tryInit = () => {

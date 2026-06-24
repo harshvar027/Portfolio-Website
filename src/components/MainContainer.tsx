@@ -8,6 +8,7 @@ import Landing from "./Landing";
 import NameReveal from "./NameReveal";
 import Navbar from "./Navbar";
 import ParticleMorphLayer, { ParticleMorphSpacer } from "./ParticleMorph";
+import { prefetchParticlePortrait } from "./ParticleMorph/particleMorphUtils";
 import SocialIcons from "./SocialIcons";
 import TechStack, { TechStackSpacer } from "./TechStack";
 import WhatIDo from "./WhatIDo";
@@ -20,12 +21,21 @@ import Work from "./Work";
 import setSplitText from "./utils/splitText";
 import { prepareScrollSmoother, refreshScrollSmoother } from "./utils/scrollSmoother";
 import { initSiteAnimations } from "./utils/siteAnimations";
+import { enqueueHeavyTask } from "../utils/heavyTaskQueue";
+import { refreshScrollLayout } from "./utils/GsapScroll";
+
+const TECHSTACK_ANCHOR_ID = "techstack-anchor";
+const PARTICLE_ANCHOR_ID = "particle-morph-section";
 
 const MainContainer = ({ children }: PropsWithChildren) => {
   const [isDesktopView, setIsDesktopView] = useState<boolean>(
     window.innerWidth > 1024
   );
   const [siteReady, setSiteReady] = useState(false);
+  const [webglReady, setWebglReady] = useState({
+    tech: false,
+    particle: false,
+  });
 
   useEffect(() => {
     prepareScrollSmoother();
@@ -53,7 +63,9 @@ const MainContainer = ({ children }: PropsWithChildren) => {
       return;
     }
 
-    const onReveal = () => setSiteReady(true);
+    const onReveal = () => {
+      setSiteReady(true);
+    };
     window.addEventListener("site-reveal", onReveal);
     return () => window.removeEventListener("site-reveal", onReveal);
   }, []);
@@ -61,15 +73,69 @@ const MainContainer = ({ children }: PropsWithChildren) => {
   useEffect(() => {
     if (!siteReady) return;
 
+    const observers: IntersectionObserver[] = [];
+
+    const observe = (
+      id: string,
+      key: "tech" | "particle",
+      rootMargin: string
+    ) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (!entry.isIntersecting) return;
+          setWebglReady((prev) => ({ ...prev, [key]: true }));
+          observer.disconnect();
+        },
+        { rootMargin }
+      );
+
+      observer.observe(el);
+      observers.push(observer);
+    };
+
+    observe(TECHSTACK_ANCHOR_ID, "tech", "400px");
+    observe(PARTICLE_ANCHOR_ID, "particle", "80px");
+
+    return () => observers.forEach((observer) => observer.disconnect());
+  }, [siteReady]);
+
+  useEffect(() => {
+    if (!siteReady) return;
+    requestAnimationFrame(() => refreshScrollLayout());
+    enqueueHeavyTask(
+      "particle-prefetch",
+      () => {
+        void prefetchParticlePortrait();
+      },
+      500
+    );
+  }, [siteReady]);
+
+  useEffect(() => {
+    if (!siteReady) return;
+
     let disposeAnimations: (() => void) | null = null;
-    const splitTimer = setTimeout(() => setSplitText(), 200);
-    const animTimer = setTimeout(() => {
-      disposeAnimations = initSiteAnimations();
-    }, 350);
+
+    enqueueHeavyTask(
+      "split-text",
+      () => {
+        setSplitText();
+      },
+      15000
+    );
+
+    enqueueHeavyTask(
+      "site-animations",
+      () => {
+        disposeAnimations = initSiteAnimations();
+      },
+      16000
+    );
 
     return () => {
-      clearTimeout(splitTimer);
-      clearTimeout(animTimer);
       disposeAnimations?.();
     };
   }, [siteReady]);
@@ -106,8 +172,8 @@ const MainContainer = ({ children }: PropsWithChildren) => {
           </div>
         </div>
       </div>
-      {siteReady && <TechStack />}
-      {siteReady && <ParticleMorphLayer />}
+      {webglReady.tech && <TechStack />}
+      {webglReady.particle && <ParticleMorphLayer />}
     </div>
   );
 };

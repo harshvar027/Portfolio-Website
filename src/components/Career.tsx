@@ -2,8 +2,7 @@ import { useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
-import { smoother } from "./utils/scrollSmoother";
-import { scheduleScrollLayoutRefresh } from "./utils/GsapScroll";
+import { refreshScrollLayout } from "./utils/GsapScroll";
 import "./styles/Career.css";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
@@ -87,9 +86,7 @@ const Career = () => {
         }
 
         ScrollTrigger.refresh(false);
-        scheduleScrollLayoutRefresh(() => {
-          smoother?.refresh(false);
-        });
+        refreshScrollLayout();
       };
 
       let rafId = 0;
@@ -98,7 +95,7 @@ const Career = () => {
           document.querySelector("main.main-active") &&
           document.querySelector(".career-info")
         ) {
-          build();
+          requestAnimationFrame(() => requestAnimationFrame(build));
           return;
         }
         rafId = requestAnimationFrame(waitForReady);

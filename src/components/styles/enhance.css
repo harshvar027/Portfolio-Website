@@ -311,58 +311,10 @@
   100% { box-shadow: 0 0 0 0 rgba(84, 240, 143, 0); }
 }
 
-.scroll-cue {
-  position: absolute;
-  bottom: 26px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  z-index: 9;
-  color: rgba(234, 229, 236, 0.6);
-  font-size: 10px;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  animation: fadeUp 1s ease 1s both;
-  pointer-events: none;
-}
-.scroll-cue .mouse {
-  width: 22px;
-  height: 36px;
-  border: 1.5px solid rgba(194, 164, 255, 0.5);
-  border-radius: 14px;
-  position: relative;
-}
-.scroll-cue .mouse::before {
-  content: "";
-  position: absolute;
-  top: 7px;
-  left: 50%;
-  width: 3px;
-  height: 7px;
-  border-radius: 3px;
-  background: var(--accent);
-  transform: translateX(-50%);
-  animation: scrollWheel 1.8s ease-in-out infinite;
-}
-@keyframes scrollWheel {
-  0% { opacity: 0; transform: translate(-50%, 0); }
-  40% { opacity: 1; }
-  100% { opacity: 0; transform: translate(-50%, 12px); }
-}
-@media (max-width: 1024px) {
-  .scroll-cue {
-    transform: translateX(-50%) scale(0.85);
-    bottom: 16px;
-  }
-}
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.landing-info .scroll-cue { transform: translateX(-50%); }
 
 /* ==========================================================================
    ABOUT — refined highlight glow

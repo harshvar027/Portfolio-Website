@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { enqueueHeavyTask } from "../utils/heavyTaskQueue";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -39,7 +40,7 @@ export default function SiteGradient() {
         requestAnimationFrame(waitForContent);
         return;
       }
-      init();
+      enqueueHeavyTask("site-gradient", init, 5000);
     };
 
     waitForContent();

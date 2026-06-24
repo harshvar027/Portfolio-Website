@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import HoverLinks from "./HoverLinks";
 import { useMusicReactive } from "../context/MusicReactiveContext";
-import { smoother } from "./utils/scrollSmoother";
+import { smoother, scrollEnabled } from "./utils/scrollSmoother";
 import "./styles/Navbar.css";
 
 const Navbar = () => {
@@ -30,13 +30,22 @@ const Navbar = () => {
 
     links.forEach((elem) => {
       const handler = (e: Event) => {
-        if (window.innerWidth > 1024) {
-          e.preventDefault();
-          const anchor = e.currentTarget as HTMLAnchorElement;
-          const section = anchor.getAttribute("data-href");
-          if (section) {
-            smoother?.scrollTo(section, true, "top top");
-          }
+        if (window.innerWidth <= 1024) return;
+
+        const anchor = e.currentTarget as HTMLAnchorElement;
+        const section = anchor.getAttribute("data-href");
+        if (!section) return;
+
+        e.preventDefault();
+
+        if (smoother && scrollEnabled()) {
+          smoother.scrollTo(section, true, "top top");
+          return;
+        }
+
+        const target = document.querySelector(section);
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       };
       elem.addEventListener("click", handler);

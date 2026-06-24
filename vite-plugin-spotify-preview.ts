@@ -1,9 +1,12 @@
 import type { Connect, Plugin, PreviewServer, ViteDevServer } from "vite";
 import { loadEnv } from "vite";
 import { fetchLrclibLyrics } from "./server/lrclib.js";
-import { searchSpotifyPreviews } from "./server/spotifyPreview.js";
+import {
+  resolveTrackPreview,
+  searchSpotifyPreviews,
+} from "./server/spotifyPreview.js";
 
-const spotifyHandler: Connect.NextHandleFunction = async (req, res, next) => {
+const spotifySearchHandler: Connect.NextHandleFunction = async (req, res, next) => {
   const path = req.url?.split("?")[0];
   if (path !== "/api/spotify/search") {
     next();
@@ -38,6 +41,58 @@ const spotifyHandler: Connect.NextHandleFunction = async (req, res, next) => {
     res.end(
       JSON.stringify({
         error: err instanceof Error ? err.message : "Spotify search failed",
+      })
+    );
+  }
+};
+
+const spotifyPreviewHandler: Connect.NextHandleFunction = async (
+  req,
+  res,
+  next
+) => {
+  const path = req.url?.split("?")[0];
+  if (path !== "/api/spotify/preview") {
+    next();
+    return;
+  }
+
+  if (req.method !== "GET") {
+    res.statusCode = 405;
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ error: "Method not allowed" }));
+    return;
+  }
+
+  const url = new URL(req.url!, `http://${req.headers.host}`);
+  const name = url.searchParams.get("name")?.trim();
+  const artists = url.searchParams.get("artists")?.trim();
+
+  if (!name || !artists) {
+    res.statusCode = 400;
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ error: "name and artists are required" }));
+    return;
+  }
+
+  try {
+    const previewUrl = await resolveTrackPreview(name, artists);
+    if (!previewUrl) {
+      res.statusCode = 404;
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ error: "No preview available for this track" }));
+      return;
+    }
+
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ previewUrl }));
+  } catch (err) {
+    res.statusCode = 500;
+    res.setHeader("Content-Type", "application/json");
+    res.end(
+      JSON.stringify({
+        error: err instanceof Error ? err.message : "Preview lookup failed",
       })
     );
   }
@@ -108,12 +163,18 @@ const lrclibHandler: Connect.NextHandleFunction = async (req, res, next) => {
 };
 
 const handler: Connect.NextHandleFunction = (req, res, next) => {
-  spotifyHandler(req, res, (err) => {
+  spotifySearchHandler(req, res, (err) => {
     if (err) {
       next(err);
       return;
     }
-    lrclibHandler(req, res, next);
+    spotifyPreviewHandler(req, res, (err2) => {
+      if (err2) {
+        next(err2);
+        return;
+      }
+      lrclibHandler(req, res, next);
+    });
   });
 };
 

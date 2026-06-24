@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import "./styles/Loading.css";
 import { useLoading } from "../context/LoadingProvider";
-import { revealSite, runLandingTextFX } from "./utils/initialFX";
+import { revealSite, runLandingTextFX, runLandingTextFXHeavy } from "./utils/initialFX";
+import { enqueueHeavyTask } from "../utils/heavyTaskQueue";
 
 const PHRASES = [
   "WEB DEV",
@@ -78,7 +79,6 @@ const Loading = ({ percent }: { percent: number }) => {
     if (!exiting) return;
 
     let cancelled = false;
-    let textTimer: ReturnType<typeof setTimeout>;
     let revealTimer: ReturnType<typeof setTimeout>;
 
     window.dispatchEvent(new CustomEvent("site-reveal"));
@@ -89,10 +89,23 @@ const Loading = ({ percent }: { percent: number }) => {
       setIsLoading(false);
     });
 
-    textTimer = setTimeout(() => {
-      if (cancelled) return;
-      runLandingTextFX();
-    }, 120);
+    enqueueHeavyTask(
+      "landing-text-light",
+      () => {
+        if (cancelled) return;
+        runLandingTextFX();
+      },
+      400
+    );
+
+    enqueueHeavyTask(
+      "landing-text-heavy",
+      () => {
+        if (cancelled) return;
+        runLandingTextFXHeavy();
+      },
+      700
+    );
 
     revealTimer = setTimeout(() => {
       if (cancelled) return;
@@ -101,7 +114,6 @@ const Loading = ({ percent }: { percent: number }) => {
 
     return () => {
       cancelled = true;
-      clearTimeout(textTimer);
       clearTimeout(revealTimer);
       document.body.classList.remove("site-revealing");
     };

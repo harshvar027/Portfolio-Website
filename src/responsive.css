@@ -157,6 +157,29 @@ video {
   }
 }
 
+/* -----------------------------------------------------------------------------
+   4. PHONE BREAKPOINT TIERS (320px – 767px)
+   Shared layout tokens for small screens. Section-specific rules live in
+   component CSS files; these are global safety nets.
+   -------------------------------------------------------------------------- */
+@media only screen and (max-width: 767px) {
+  body {
+    --cWidth: calc(100% - 24px);
+  }
+}
+
+@media only screen and (max-width: 480px) {
+  body {
+    --cWidth: calc(100% - 20px);
+  }
+}
+
+@media only screen and (max-width: 390px) {
+  body {
+    --cWidth: calc(100% - 16px);
+  }
+}
+
 /* Respect reduced-motion (site already opts into this elsewhere) */
 @media (prefers-reduced-motion: reduce) {
   .header ul,

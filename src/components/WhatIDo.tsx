@@ -28,7 +28,7 @@ const WhatIDo = () => {
   }, []);
   return (
     <div className="whatIDO">
-      <div className="what-box">
+      <div className="what-box what-header">
         <h2 className="title">
           W<span className="hat-h2">HAT</span>
           <br />I<span className="do-h2"> DO</span>

@@ -16,17 +16,15 @@
     opacity 0.9s cubic-bezier(0.4, 0, 0.2, 1) 0.35s;
   will-change: transform, opacity;
   backface-visibility: hidden;
+  pointer-events: auto;
 }
 
 .loading-exit {
   transform: translate3d(0, -22%, 0) rotateX(14deg) scale(1.06);
   opacity: 0;
-  pointer-events: none;
 }
 
-body.site-revealing .loading-screen {
-  pointer-events: none;
-}
+/* Keep capturing input until the loader unmounts — prevents queued clicks during heavy init */
 
 .loading-exit .loading-header {
   transform: translate3d(-50%, -140%, 80px);

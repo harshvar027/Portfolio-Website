@@ -155,8 +155,8 @@ const MusicPicker = ({
 
       {!spotifyConfigured && (
         <p className="music-picker-note">
-          Add <code>SPOTIFY_CLIENT_SECRET</code> and{" "}
-          <code>VITE_SPOTIFY_CLIENT_ID</code> to enable search.
+          Optional: add <code>VITE_SPOTIFY_CLIENT_ID</code> to enable Spotify
+          Premium login for full tracks.
         </p>
       )}
 
@@ -181,23 +181,19 @@ const MusicPicker = ({
 
       {results.length > 0 && (
         <ul className="music-picker-results">
-          {results.map((track) => {
-            const hasPreview = Boolean(track.previewUrl);
-            const canPlay = spotifyConnected || hasPreview;
-
-            return (
+          {results.map((track) => (
             <li key={track.id}>
               <button
                 type="button"
                 className="music-picker-track"
                 onClick={() => handlePickTrack(track)}
-                disabled={loadingTrackId === track.id || !canPlay}
+                disabled={loadingTrackId === track.id}
                 title={
-                  !canPlay
-                    ? "No preview available for this track"
-                    : spotifyConnected
-                      ? "Play full track"
-                      : "Play 30s preview"
+                  spotifyConnected
+                    ? "Play full track"
+                    : track.previewUrl
+                      ? "Play 30s preview"
+                      : "Play preview"
                 }
               >
                 {track.albumArt ? (
@@ -209,21 +205,15 @@ const MusicPicker = ({
                   <strong>{track.name}</strong>
                   <small>
                     {track.artists}
-                    {!spotifyConnected && hasPreview ? " · 30s preview" : ""}
-                    {!hasPreview && !spotifyConnected ? " · no preview" : ""}
+                    {!spotifyConnected ? " · preview" : ""}
                   </small>
                 </span>
                 <span className="music-picker-track-action">
-                  {loadingTrackId === track.id
-                    ? "…"
-                    : !canPlay
-                      ? "—"
-                      : "Play"}
+                  {loadingTrackId === track.id ? "…" : "Play"}
                 </span>
               </button>
             </li>
-            );
-          })}
+          ))}
         </ul>
       )}
 

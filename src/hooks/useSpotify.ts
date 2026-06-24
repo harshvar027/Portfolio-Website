@@ -14,6 +14,7 @@ import {
   refreshAccessToken,
 } from "../lib/spotify/pkce";
 import type { SpotifyTokens, SpotifyTrack } from "../lib/spotify/types";
+import { resolvePreviewUrl } from "../lib/spotify/previewSearch";
 
 const TOKEN_KEY = "spotify_tokens";
 const RETURN_KEY = "spotify-open-search";
@@ -387,7 +388,8 @@ export function useSpotify() {
 
   const playPreview = useCallback(
     async (track: SpotifyTrack) => {
-      if (!track.previewUrl) {
+      const previewUrl = await resolvePreviewUrl(track);
+      if (!previewUrl) {
         throw new Error("No preview available for this track.");
       }
 
@@ -397,14 +399,14 @@ export function useSpotify() {
       audio.volume = volumeRef.current;
       audio.loop = true;
       audio.preload = "auto";
-      audio.src = track.previewUrl;
+      audio.src = previewUrl;
 
       await waitForAudioReady(audio);
       await audio.play();
 
       audioRef.current = audio;
       setPlaybackMode("preview");
-      setActiveTrack(track);
+      setActiveTrack({ ...track, previewUrl });
       setPlaybackPositionMs(0);
       setIsPaused(false);
     },
@@ -413,13 +415,14 @@ export function useSpotify() {
 
   const playPreviewOnly = useCallback(
     async (track: SpotifyTrack) => {
-      if (!track.previewUrl) {
+      const previewUrl = await resolvePreviewUrl(track);
+      if (!previewUrl) {
         throw new Error("No 30-second preview available for this track.");
       }
 
       setAuthError(null);
       await stopInternal();
-      await playPreview(track);
+      await playPreview({ ...track, previewUrl });
     },
     [playPreview, stopInternal]
   );
@@ -459,14 +462,15 @@ export function useSpotify() {
         setIsPaused(false);
         setAuthError(null);
       } catch (err) {
-        if (!track.previewUrl) throw err;
+        const previewUrl = await resolvePreviewUrl(track)
+        if (!previewUrl) throw err
 
-        await playPreview(track);
+        await playPreview({ ...track, previewUrl })
         setAuthError(
           err instanceof Error
             ? `${err.message} Playing 30s preview instead.`
             : "Playing preview instead."
-        );
+        )
       }
     },
     [

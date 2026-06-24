@@ -6,7 +6,9 @@ gsap.registerPlugin(ScrollSmoother, ScrollTrigger);
 
 export let smoother: ScrollSmoother | null = null;
 
-let scrollEnabled = false;
+let scrollEnabledFlag = false;
+
+export const scrollEnabled = () => scrollEnabledFlag;
 
 function getScrollConfig() {
   const isTouch = ScrollTrigger.isTouch === 1;
@@ -62,16 +64,16 @@ export function prepareScrollSmoother() {
 
 /** Enable smooth scroll once after the loading screen finishes. */
 export function enableScroll() {
-  if (scrollEnabled && smoother) {
+  if (scrollEnabledFlag && smoother) {
     smoother.paused(false);
     return;
   }
 
   const finish = (instance: ScrollSmoother) => {
-    scrollEnabled = true;
+    scrollEnabledFlag = true;
     instance.paused(false);
-    // Soft refresh only — hard refresh(true) resets scroll position mid-gesture.
     requestAnimationFrame(() => {
+      ScrollTrigger.refresh(false);
       instance.refresh(false);
     });
   };

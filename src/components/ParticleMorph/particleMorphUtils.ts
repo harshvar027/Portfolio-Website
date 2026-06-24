@@ -45,10 +45,14 @@ export const getAdaptiveParticleCount = (): number => {
   const dpr = Math.min(window.devicePixelRatio, 1.5)
   const imagePixels = w * h * dpr * dpr
 
-  if (w < 640) return Math.min(8000, Math.max(6000, Math.floor(imagePixels * 0.12)))
-  if (w < 1024) return Math.min(12000, Math.max(8000, Math.floor(imagePixels * 0.14)))
-  return Math.min(20000, Math.max(12000, Math.floor(imagePixels * 0.15)))
+  if (w < 640) return Math.min(6000, Math.max(4000, Math.floor(imagePixels * 0.1)))
+  if (w < 1024) return Math.min(9000, Math.max(6000, Math.floor(imagePixels * 0.11)))
+  return Math.min(12000, Math.max(8000, Math.floor(imagePixels * 0.12)))
 }
+
+/** Warm portrait CPU pipeline during idle time so scroll never blocks on it. */
+export const prefetchParticlePortrait = () =>
+  loadImageCloudSamples(PARTICLE_PROFILE_IMAGE)
 
 export function visibleSize(camera: THREE.PerspectiveCamera) {
   const vFov = (camera.fov * Math.PI) / 180
@@ -222,18 +226,22 @@ const getPortraitFraming = (vw: number, vh: number) => {
   let offsetYFactor = -0.02
 
   if (w < 640) {
-    scaleFactor = 0.88
-    offsetYFactor = -0.01
+    scaleFactor = 0.94
+    offsetYFactor = -0.005
   } else if (w >= 1400) {
     scaleFactor = 0.86
     offsetYFactor = -0.025
   }
 
   const aspect = vw / Math.max(vh, 1)
-  const aspectScale = aspect > 1.2 ? 0.96 : aspect < 0.7 ? 1.04 : 1
+  const aspectScale = aspect > 1.2 ? 0.96 : aspect < 0.75 ? 0.98 : 1
+
+  // Portrait bbox is square in world space — contain within both axes so
+  // narrow mobile viewports don't clip the sides.
+  const fitDim = Math.min(vh, vw)
 
   return {
-    scale: vh * scaleFactor * aspectScale,
+    scale: fitDim * scaleFactor * aspectScale,
     offsetX: 0,
     offsetY: vh * offsetYFactor,
   }
@@ -454,88 +462,14 @@ export function loadImageCloudSamples(url: string): Promise<ProcessedPortrait> {
   })
 }
 
-/** Subsample fine grid cells into a target halftone grid (one dot per cell). */
-const buildHalftoneGrid = (
-  portrait: ProcessedPortrait,
-  targetCount: number
-): HalftoneCell[] => {
-  const { cells, bboxAspect } = portrait
-  const count = Math.min(targetCount, cells.length)
-
-  let cols = Math.max(8, Math.floor(Math.sqrt(count * bboxAspect)))
-  let rows = Math.max(8, Math.floor(count / cols))
-  while (cols * rows > count && cols > 8) {
-    cols--
-    rows = Math.max(8, Math.floor(count / cols))
-  }
-  while (cols * rows < count * 0.85 && cols * rows < cells.length) {
-    cols++
-    rows = Math.max(8, Math.floor(count / cols))
-  }
-
-  const cellW = 1 / cols
-  const cellH = 1 / rows
-  const grid: HalftoneCell[] = []
-
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      const cx = (col + 0.5) * cellW - 0.5
-      const cy = 0.5 - (row + 0.5) * cellH
-
-      let best: HalftoneCell | null = null
-      let bestScore = -1
-
-      for (const c of cells) {
-        if (Math.abs(c.nx - cx) > cellW * 0.6 || Math.abs(c.ny - cy) > cellH * 0.6) {
-          continue
-        }
-        const score = c.weight * (1 + c.edge * 0.5)
-        if (score > bestScore) {
-          bestScore = score
-          best = c
-        }
-      }
-
-      if (!best) {
-        let nearest: HalftoneCell | null = null
-        let nearestD = Infinity
-        for (const c of cells) {
-          const d = (c.nx - cx) ** 2 + (c.ny - cy) ** 2
-          if (d < nearestD) {
-            nearestD = d
-            nearest = c
-          }
-        }
-        best = nearest
-      }
-
-      if (!best) continue
-
-      grid.push({
-        nx: cx,
-        ny: cy,
-        weight: best.weight,
-        r: best.r,
-        g: best.g,
-        b: best.b,
-        edge: best.edge,
-      })
-    }
-  }
-
-  return grid
-}
-
-/** Maps grid halftone cells into world-space points — no random x/y sampling. */
+/** Maps portrait cells into world-space points — subsample only (O(n), no grid scan). */
 export function buildImageCloud(
   n: number,
   vw: number,
   vh: number,
   portrait: ProcessedPortrait
 ): ParticlePoint[] {
-  const grid = portrait.directSample
-    ? subsampleCells(portrait.cells, n)
-    : buildHalftoneGrid(portrait, n)
+  const grid = subsampleCells(portrait.cells, n)
   const pts: ParticlePoint[] = []
   const { scale, offsetX, offsetY } = getPortraitFraming(vw, vh)
   const cellArea = (scale / Math.sqrt(grid.length)) ** 2

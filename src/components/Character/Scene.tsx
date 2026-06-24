@@ -14,6 +14,8 @@ import {
 } from "./utils/mouseUtils";
 import setAnimations from "./utils/animationUtils";
 import { setProgress } from "../Loading";
+import { yieldToMain } from "../../utils/heavyTaskQueue";
+import { initScrollTimelines } from "../utils/GsapScroll";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -64,6 +66,7 @@ const Scene = () => {
     let onSiteReveal: (() => void) | null = null;
     let charZoneActive = true;
     let renderGate: ScrollTrigger | null = null;
+    let characterLoaded = false;
 
     const clock = new THREE.Clock();
 
@@ -75,7 +78,7 @@ const Scene = () => {
       camera,
       progress.setMilestone,
       () => {
-        void progress.loaded();
+        progress.setMilestone(95);
       }
     );
 
@@ -83,57 +86,80 @@ const Scene = () => {
       .then((gltf) => {
         if (!gltf) return;
 
-        try {
-          const animations = setAnimations(gltf);
-          hoverDivRef.current && animations.hover(gltf, hoverDivRef.current);
-          mixer = animations.mixer;
-          const character = gltf.scene;
-          scene.add(character);
-          headBone = character.getObjectByName("spine006") || null;
-          screenLight = character.getObjectByName("screenlight") || null;
-          light.turnOnLights();
-          onSiteReveal = () => {
-            if (introStarted) return;
-            introStarted = true;
-            animations.startIntro();
-          };
-          if (document.body.classList.contains("site-revealed")) {
-            onSiteReveal();
-          } else {
-            window.addEventListener("site-reveal", onSiteReveal, {
-              once: true,
+        yieldToMain(() => {
+          try {
+            const animations = setAnimations(gltf);
+            hoverDivRef.current && animations.hover(gltf, hoverDivRef.current);
+            mixer = animations.mixer;
+            const character = gltf.scene;
+            scene.add(character);
+            characterLoaded = true;
+            headBone = character.getObjectByName("spine006") || null;
+            screenLight = character.getObjectByName("screenlight") || null;
+            light.turnOnLights();
+
+            onSiteReveal = () => {
+              if (introStarted) return;
+              introStarted = true;
+              animations.startIntro();
+            };
+            if (document.body.classList.contains("site-revealed")) {
+              onSiteReveal();
+            } else {
+              window.addEventListener("site-reveal", onSiteReveal, {
+                once: true,
+              });
+            }
+
+            resizeHandler = () =>
+              handleResize(renderer, camera, canvasDiv, character);
+
+            renderGate?.kill();
+            renderGate = ScrollTrigger.create({
+              id: "char-render-gate",
+              trigger: ".whatIDO",
+              start: "bottom top",
+              onEnter: () => {
+                charZoneActive = false;
+              },
+              onLeaveBack: () => {
+                charZoneActive = true;
+                startLoop();
+              },
             });
-          }
-          resizeHandler = () =>
-            handleResize(renderer, camera, canvasDiv, character);
+            const whatSection = document.querySelector(".whatIDO");
+            if (whatSection) {
+              const whatRect = whatSection.getBoundingClientRect();
+              charZoneActive = whatRect.bottom > 0;
+            }
 
-          renderGate?.kill();
-          renderGate = ScrollTrigger.create({
-            id: "char-render-gate",
-            trigger: ".whatIDO",
-            start: "bottom top",
-            onEnter: () => {
-              charZoneActive = false;
-            },
-            onLeaveBack: () => {
-              charZoneActive = true;
-              startLoop();
-            },
-          });
-          const whatSection = document.querySelector(".whatIDO");
-          if (whatSection) {
-            const whatRect = whatSection.getBoundingClientRect();
-            charZoneActive = whatRect.bottom > 0;
-          }
+            window.addEventListener("resize", resizeHandler);
 
-          window.addEventListener("resize", resizeHandler);
-        } catch (err) {
-          console.error("Character scene setup failed:", err);
-        }
+            const initCharScroll = () => {
+              try {
+                initScrollTimelines(character, camera);
+                character.getObjectByName("footR")!.position.y = 3.36;
+                character.getObjectByName("footL")!.position.y = 3.36;
+              } catch (err) {
+                console.error("Character scroll setup failed:", err);
+              }
+            };
+            if (document.querySelector("main.main-active")) {
+              initCharScroll();
+            } else {
+              window.addEventListener("site-reveal", initCharScroll, {
+                once: true,
+              });
+            }
+
+            startLoop();
+          } catch (err) {
+            console.error("Character scene setup failed:", err);
+          }
+        });
       })
       .catch((err) => {
         console.error("Character failed to load:", err);
-        void progress.loaded();
       });
 
     let mouse = { x: 0, y: 0 },
@@ -177,7 +203,7 @@ const Scene = () => {
     const visibilityObserver = new IntersectionObserver(
       ([entry]) => {
         visible = entry.isIntersecting;
-        if (visible && charZoneActive) startLoop();
+        if (visible && charZoneActive && characterLoaded) startLoop();
       },
       { rootMargin: "150px" }
     );
@@ -213,11 +239,9 @@ const Scene = () => {
     };
 
     const startLoop = () => {
-      if (frameId || !charZoneActive || !visible) return;
+      if (frameId || !characterLoaded || !charZoneActive || !visible) return;
       frameId = requestAnimationFrame(animate);
     };
-
-    startLoop();
 
     return () => {
       if (onSiteReveal) {

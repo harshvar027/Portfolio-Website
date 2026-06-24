@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { DRACOLoader, GLTF, GLTFLoader } from "three-stdlib";
-import { initScrollTimelines } from "../../utils/GsapScroll";
+import { yieldToMain } from "../../../utils/heavyTaskQueue";
 import { decryptFile } from "./decrypt";
 import { upgradeCharacterLook } from "./upgradeCharacterLook";
 
@@ -14,6 +14,8 @@ const setCharacter = (
   const loader = new GLTFLoader();
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath("/draco/");
+  dracoLoader.setWorkerLimit(2);
+  dracoLoader.preload();
   loader.setDRACOLoader(dracoLoader);
 
   const loadCharacter = () => {
@@ -38,42 +40,35 @@ const setCharacter = (
           onProgress?.(38);
         }
 
-        let character: THREE.Object3D;
         let modelParsed = false;
         loader.load(
           modelUrl,
           (gltf) => {
             modelParsed = true;
             onProgress?.(72);
-            character = gltf.scene;
-            upgradeCharacterLook(character);
-            character.traverse((child: any) => {
-              if (child.isMesh) {
-                const mesh = child as THREE.Mesh;
-                child.castShadow = true;
-                child.receiveShadow = true;
-                mesh.frustumCulled = true;
-              }
+
+            yieldToMain(() => {
+              const character = gltf.scene;
+              character.traverse((child: any) => {
+                if (child.isMesh) {
+                  const mesh = child as THREE.Mesh;
+                  child.castShadow = true;
+                  child.receiveShadow = true;
+                  mesh.frustumCulled = true;
+                }
+              });
+
+              upgradeCharacterLook(character);
+
+              onProgress?.(90);
+              onReady?.();
+              resolve(gltf);
+              dracoLoader.dispose();
+
+              void renderer
+                .compileAsync(character, camera, scene)
+                .catch(() => undefined);
             });
-            onProgress?.(90);
-
-            void Promise.race([
-              renderer.compileAsync(character, camera, scene),
-              new Promise<void>((resolve) => setTimeout(resolve, 2_000)),
-            ]).catch(() => undefined);
-
-            onProgress?.(100);
-            onReady?.();
-            resolve(gltf);
-
-            try {
-              initScrollTimelines(character, camera);
-              character.getObjectByName("footR")!.position.y = 3.36;
-              character.getObjectByName("footL")!.position.y = 3.36;
-            } catch (err) {
-              console.error("Character post-load setup failed:", err);
-            }
-            dracoLoader.dispose();
           },
           (event) => {
             if (modelParsed || event.total <= 0) return;

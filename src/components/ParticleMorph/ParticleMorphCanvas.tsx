@@ -18,8 +18,8 @@ import {
   type ProcessedPortrait,
 } from "./particleMorphUtils";
 import { anchorHostBaseStyle, useAnchorSync } from "../../hooks/useAnchorRect";
-import { smoother } from "../utils/scrollSmoother";
 import { scheduleScrollLayoutRefresh } from "../utils/GsapScroll";
+import { yieldToMain } from "../../utils/heavyTaskQueue";
 import "./ParticleMorph.css";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -162,11 +162,11 @@ const ParticleMorphLayer = () => {
       scene.add(points);
     };
 
-    const setSize = () => {
+    const applySize = () => {
       if (!renderer) return;
-      const anchor = document.getElementById(PARTICLE_ANCHOR_ID);
-      if (!anchor) return;
-      const r = anchor.getBoundingClientRect();
+      const anchorEl = document.getElementById(PARTICLE_ANCHOR_ID);
+      if (!anchorEl) return;
+      const r = anchorEl.getBoundingClientRect();
       const w = r.width || window.innerWidth;
       const h = r.height || window.innerHeight;
       if (
@@ -179,8 +179,15 @@ const ParticleMorphLayer = () => {
       renderer.setSize(w, h);
       camera.aspect = w / Math.max(h, 1);
       camera.updateProjectionMatrix();
-      buildParticles();
-      morphTrigger?.refresh();
+    };
+
+    const setSize = () => {
+      applySize();
+      yieldToMain(() => {
+        if (cancelled) return;
+        buildParticles();
+        morphTrigger?.refresh();
+      });
     };
 
     const debouncedSetSize = () => {
@@ -209,10 +216,7 @@ const ParticleMorphLayer = () => {
 
       scrollState.raw = morphTrigger.progress;
       scrollState.smooth = morphTrigger.progress;
-      scheduleScrollLayoutRefresh(() => {
-        ScrollTrigger.refresh(false);
-        smoother?.refresh(false);
-      });
+      window.setTimeout(() => scheduleScrollLayoutRefresh(), 400);
     };
 
     const onMouseMove = (e: MouseEvent) => {
@@ -269,16 +273,21 @@ const ParticleMorphLayer = () => {
         powerPreference: "high-performance",
       });
       renderer.setClearColor(0x000000, 0);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
 
-      setSize();
-      requestAnimationFrame(() => {
-        initScroll();
+      applySize();
+      yieldToMain(() => {
+        if (cancelled) return;
+        buildParticles();
+        requestAnimationFrame(() => {
+          if (cancelled) return;
+          initScroll();
+          if (visibleRef.current) startAnimate();
+        });
       });
       window.addEventListener("resize", debouncedSetSize);
       host.addEventListener("mousemove", onMouseMove);
       host.addEventListener("mouseleave", onMouseLeave);
-      if (visibleRef.current) startAnimate();
     };
 
     restartAnimateRef.current = () => startAnimate();
@@ -288,11 +297,17 @@ const ParticleMorphLayer = () => {
       .then((portrait) => {
         if (cancelled) return;
         portraitData = portrait;
-        start();
+        yieldToMain(() => {
+          if (cancelled) return;
+          start();
+        });
       })
       .catch(() => {
         if (cancelled) return;
-        start();
+        yieldToMain(() => {
+          if (cancelled) return;
+          start();
+        });
       });
 
     return () => {

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { initScrollTimelines, scheduleScrollLayoutRefresh } from "../../utils/GsapScroll";
+import { initScrollTimelines, scheduleCharacterScrollRefresh } from "../../utils/GsapScroll";
 import { smoother } from "../../utils/scrollSmoother";
 
 export default function handleResize(
@@ -16,7 +16,7 @@ export default function handleResize(
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
   initScrollTimelines(character, camera);
-  scheduleScrollLayoutRefresh(() => {
+  scheduleCharacterScrollRefresh(() => {
     smoother?.refresh(false);
   });
 }

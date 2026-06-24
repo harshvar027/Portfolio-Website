@@ -131,13 +131,13 @@ const MusicSearchBar = () => {
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => results.length > 0 && setOpen(true)}
           placeholder="Search song or artist…"
-          disabled={searching || !spotifyConfigured}
+          disabled={searching}
           autoComplete="off"
         />
         <button
           type="submit"
           className="music-search-bar-btn"
-          disabled={searching || !query.trim() || !spotifyConfigured}
+          disabled={searching || !query.trim()}
           aria-label="Search"
         >
           {searching ? "…" : "Search"}
@@ -146,7 +146,7 @@ const MusicSearchBar = () => {
 
       {!spotifyConfigured && (
         <p className="music-search-bar-note">
-          Add Spotify credentials to enable search.
+          Connect Spotify Premium for full-track playback.
         </p>
       )}
 
@@ -158,23 +158,17 @@ const MusicSearchBar = () => {
 
       {open && results.length > 0 && (
         <ul className="music-search-bar-results" role="listbox">
-          {results.map((track) => {
-            const hasPreview = Boolean(track.previewUrl)
-            const canPlay = spotifyConnected || hasPreview
-
-            return (
+          {results.map((track) => (
               <li key={track.id} role="option">
                 <button
                   type="button"
                   className="music-search-bar-track"
                   onClick={() => handlePickTrack(track)}
-                  disabled={loadingTrackId === track.id || !canPlay}
+                  disabled={loadingTrackId === track.id}
                   title={
-                    !canPlay
-                      ? "No preview available"
-                      : spotifyConnected
-                        ? "Play full track"
-                        : "Play 30s preview"
+                    spotifyConnected
+                      ? "Play full track"
+                      : "Play preview"
                   }
                 >
                   {track.albumArt ? (
@@ -187,16 +181,11 @@ const MusicSearchBar = () => {
                     <small>{track.artists}</small>
                   </span>
                   <span className="music-search-bar-action">
-                    {loadingTrackId === track.id
-                      ? "…"
-                      : !canPlay
-                        ? "—"
-                        : "Play"}
+                    {loadingTrackId === track.id ? "…" : "Play"}
                   </span>
                 </button>
               </li>
-            )
-          })}
+            ))}
         </ul>
       )}
     </div>

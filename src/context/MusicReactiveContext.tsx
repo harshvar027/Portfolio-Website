@@ -136,6 +136,17 @@ export function MusicReactiveProvider({ children }: PropsWithChildren) {
   }, []);
 
   useEffect(() => {
+    const handleSiteReveal = () => {
+      if (readInviteChoice() === "pending") {
+        setShowInvite(true);
+      }
+    };
+
+    window.addEventListener("site-reveal", handleSiteReveal);
+    return () => window.removeEventListener("site-reveal", handleSiteReveal);
+  }, []);
+
+  useEffect(() => {
     setPlaying(spotify.isPlaying());
     if (spotify.isPlaying()) ensureLoop();
   }, [spotify.activeTrack, spotify.playbackMode, spotify.isPlaying, ensureLoop]);

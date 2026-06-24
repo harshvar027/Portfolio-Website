@@ -1,7 +1,7 @@
 .music-invite-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 10060;
+  z-index: 1000000001;
   display: grid;
   place-items: center;
   padding: 24px;

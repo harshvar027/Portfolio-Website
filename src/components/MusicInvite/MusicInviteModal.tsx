@@ -1,16 +1,14 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { useMusicReactive } from "../../context/MusicReactiveContext";
-import { useLoading } from "../../context/LoadingProvider";
 import MusicPicker from "../Music/MusicPicker";
 import "./MusicInvite.css";
 
 const MusicInviteModal = () => {
   const { showInvite, dismissInvite } = useMusicReactive();
-  const { isLoading } = useLoading();
   const [mounted, setMounted] = useState(false);
 
-  const isVisible = showInvite && !isLoading;
+  const isVisible = showInvite;
 
   useEffect(() => {
     setMounted(true);
