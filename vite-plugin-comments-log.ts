@@ -1,10 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { Connect, Plugin, ViteDevServer, PreviewServer } from "vite";
+import {
+  buildCommentEntry,
+  parseCommentPayload,
+} from "./server/comments";
 
 const LOG_FILE = path.resolve(process.cwd(), "comments.log");
-const MAX_NAME = 100;
-const MAX_MESSAGE = 2000;
 
 const readBody = (req: Connect.IncomingMessage): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -24,12 +26,6 @@ const readBody = (req: Connect.IncomingMessage): Promise<string> =>
     req.on("error", reject);
   });
 
-const sanitize = (value: unknown, max: number): string =>
-  String(value ?? "")
-    .replace(/[\r\n]+/g, " ")
-    .trim()
-    .slice(0, max);
-
 const handler: Connect.NextHandleFunction = async (req, res, next) => {
   if (req.url?.split("?")[0] !== "/api/comments") {
     next();
@@ -45,15 +41,13 @@ const handler: Connect.NextHandleFunction = async (req, res, next) => {
 
   try {
     const raw = await readBody(req);
-    const parsed = raw ? JSON.parse(raw) : {};
+    const body = raw ? JSON.parse(raw) : {};
+    const parsed = parseCommentPayload(body);
 
-    const name = sanitize(parsed.name, MAX_NAME) || "Anonymous";
-    const message = sanitize(parsed.message, MAX_MESSAGE);
-
-    if (!message) {
+    if ("error" in parsed) {
       res.statusCode = 400;
       res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ error: "Message is required" }));
+      res.end(JSON.stringify({ error: parsed.error }));
       return;
     }
 
@@ -63,13 +57,12 @@ const handler: Connect.NextHandleFunction = async (req, res, next) => {
       "unknown";
 
     const entry =
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        name,
-        message,
-        ip,
-        userAgent: req.headers["user-agent"] ?? "unknown",
-      }) + "\n";
+      JSON.stringify(
+        buildCommentEntry(parsed, {
+          ip,
+          userAgent: req.headers["user-agent"] ?? "unknown",
+        })
+      ) + "\n";
 
     fs.appendFileSync(LOG_FILE, entry, "utf-8");
 
